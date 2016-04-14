@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from functools import wraps
 
 def func_cache(func):
 	cache = {}
+	@wraps(func)
 	def inner_deco(*args, **kwargs):
 		key = (args, frozenset(kwargs.items()))
 		if key not in cache:
@@ -21,6 +23,7 @@ def product_two_number(a, b):
 	return a * b
 
 if __name__ == "__main__":
+	print('add_two_number func name is {}'.format(add_two_number.__name__))
 	print('1. add_two_number(1, 2)')
 	add_two_number(1, 2)
 	print(add_two_number.__name__)
