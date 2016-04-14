@@ -2,8 +2,8 @@
 from functools import wraps
 import random
 
-def outer_deco(size=10):
-	def func_cache(func):
+def func_cache(size=10):
+	def func_wrapper(func):
 		cache = {}
 		@wraps(func)
 		def inner_deco(*args, **kwargs):
@@ -20,13 +20,13 @@ def outer_deco(size=10):
 				cache[key] = res
 			return cache[key]
 		return inner_deco
-	return func_cache
+	return func_wrapper
 
-@outer_deco(size=3)
+@func_cache(size=3)
 def add_two_number(a, b):
 	return a + b
 
-@outer_deco()
+@func_cache()
 def product_two_number(a, b):
 	return a * b
 
