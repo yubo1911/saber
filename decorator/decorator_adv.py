@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 import random
-from decorator import decorate
+from decorator import decorator
 
 def func_cache(size=10):
-	def wrapped_cache(func):
-		func._cache = {}
-		func._cache_size = size
-		return decorate(func, _cache)
-	return wrapped_cache
-
-def _cache(func, *args, **kwargs):
-	key = (args, frozenset(kwargs.items()))
-	if key not in func._cache:
-		print('func {} not hit cache'.format(func.__name__))
-		res = func(*args, **kwargs)
-		if len(func._cache) >= func._cache_size:
-			lucky_key = random.choice(list(func._cache.keys()))
-			func._cache.pop(lucky_key, None)
-			print('func {} pop cache key {}'.format(func.__name__, lucky_key))
-		func._cache[key] = res
-	return func._cache[key]
+	def _cache(func, *args, **kwargs):
+		if not hasattr(func, '_cache'):
+			func._cache = {}
+			func._cache_size = size
+		key = (args, frozenset(kwargs.items()))
+		if key not in func._cache:
+			print('func {} not hit cache'.format(func.__name__))
+			res = func(*args, **kwargs)
+			if len(func._cache) >= func._cache_size:
+				lucky_key = random.choice(list(func._cache.keys()))
+				func._cache.pop(lucky_key, None)
+				print('func {} pop cache key {}'.format(func.__name__, lucky_key))
+			func._cache[key] = res
+		return func._cache[key]
+	return decorator(_cache)
 
 @func_cache(size=3)
 def add_two_number(a, b):
