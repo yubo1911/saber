@@ -2,10 +2,12 @@
 import random
 from decorator import decorate
 
-def func_cache(func):
-	func._cache = {}
-	func._cache_size = 3
-	return decorate(func, _cache)
+def func_cache(size=10):
+	def wrapped_cache(func):
+		func._cache = {}
+		func._cache_size = size
+		return decorate(func, _cache)
+	return wrapped_cache
 
 def _cache(func, *args, **kwargs):
 	key = (args, frozenset(kwargs.items()))
@@ -19,11 +21,11 @@ def _cache(func, *args, **kwargs):
 		func._cache[key] = res
 	return func._cache[key]
 
-@func_cache
+@func_cache(size=3)
 def add_two_number(a, b):
 	return a + b
 
-@func_cache
+@func_cache()
 def product_two_number(a, b):
 	return a * b
 
