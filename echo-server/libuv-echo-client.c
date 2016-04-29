@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <uv.h>
 
 uv_loop_t *loop;
 #define DEFAULT_PORT 7000
+
+void my_write_helper(uv_stream_t *);
 
 void alloc_buf(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 {
@@ -30,11 +33,24 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
 		uv_close((uv_handle_t*) stream, NULL);
 	} else if (nread > 0)
 	{
-		printf("Read %s.\n", buf->base);
+		printf("Read %s", buf->base);
 	}
 
 	if (buf->base)
 		free(buf->base);
+
+	my_write_helper(stream);
+}
+
+void my_write_helper(uv_stream_t *stream)
+{
+	printf("Enter a string:");
+	char input[1024] = {0};
+	fgets(input, sizeof(input), stdin);
+	int len = strlen(input);
+	uv_buf_t wrbuf = uv_buf_init(input, len);
+	uv_write_t *wreq = (uv_write_t*) malloc(sizeof(uv_write_t));
+	uv_write(wreq, stream, &wrbuf, 1, on_write);
 }
 
 void on_connect(uv_connect_t *req, int status)
@@ -46,13 +62,7 @@ void on_connect(uv_connect_t *req, int status)
 	}
 	printf("Connected.\n");
 	uv_stream_t *stream = req->handle;
-	uv_buf_t buffer[] = {
-		{.base = "Hello", .len = 5},
-		{.base = "World", .len = 5}
-	};
-
-	uv_write_t *wreq = (uv_write_t*) malloc(sizeof(uv_write_t));
-	uv_write(wreq, stream, buffer, 2, on_write);
+	my_write_helper(stream);
 	uv_read_start(stream, alloc_buf, on_read);
 }
 
