@@ -38,14 +38,17 @@ int main()
 	if(newsockfd < 0)
 		error("Error when accept socket.\n");
 	
-	bzero(buffer, 256);
-	n = read(newsockfd, buffer, 255);
-	if(n < 0)
-		error("Error when reading socket.\n");
-	printf("Here is the message: %s.\n", buffer);
-	n = write(newsockfd, buffer, strlen(buffer));
-	if(n < 0)
-		error("Error when writing socket.\n");
+	while(1)
+	{
+		bzero(buffer, 256);
+		n = read(newsockfd, buffer, 255);
+		if(n < 0)
+			error("Error when reading socket.\n");
+		printf("Here is the message: %s", buffer);
+		n = write(newsockfd, buffer, strlen(buffer));
+		if(n < 0)
+			error("Error when writing socket.\n");
+	}
 	close(newsockfd);
 	close(sockfd);
 	return 0;
