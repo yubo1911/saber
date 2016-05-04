@@ -13,11 +13,29 @@ void error(const char* msg)
 	exit(1);
 }
 
+void echo_message(int newsockfd)
+{
+	char buffer[256];
+	int n;
+	while(1)
+	{
+		bzero(buffer, 256);
+		n = read(newsockfd, buffer, 255);
+		if(n < 0)
+			error("Error when reading socket.\n");
+		if(n == 0)
+			return;
+		printf("Here is the message: %s", buffer);
+		n = write(newsockfd, buffer, strlen(buffer));
+		if(n < 0)
+			error("Error when writing socket.\n");
+	}
+}
+
 int main()
 {
-	int sockfd, newsockfd, n, bind_res;
+	int sockfd, newsockfd, pid, bind_res;
 	socklen_t clilen;
-	char buffer[256];
 	struct sockaddr_in server_addr, client_addr;
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -34,22 +52,26 @@ int main()
 
 	listen(sockfd, 5);
 	clilen = sizeof(client_addr);
-	newsockfd = accept(sockfd, (struct sockaddr *)&client_addr, &clilen);
-	if(newsockfd < 0)
-		error("Error when accept socket.\n");
-	
 	while(1)
 	{
-		bzero(buffer, 256);
-		n = read(newsockfd, buffer, 255);
-		if(n < 0)
-			error("Error when reading socket.\n");
-		printf("Here is the message: %s", buffer);
-		n = write(newsockfd, buffer, strlen(buffer));
-		if(n < 0)
-			error("Error when writing socket.\n");
+		newsockfd = accept(sockfd, (struct sockaddr *)&client_addr, &clilen);
+		if(newsockfd < 0)
+			error("Error when accept socket.\n");
+		pid = fork();
+		if(pid < 0)
+			error("Error when fork.\n");
+		if(pid == 0)
+		{
+			close(sockfd);
+			echo_message(newsockfd);
+			exit(0);
+		}
+		else
+		{
+			close(newsockfd);
+		}
 	}
-	close(newsockfd);
+	
 	close(sockfd);
 	return 0;
 }
