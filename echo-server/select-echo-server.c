@@ -23,19 +23,16 @@ void echo_message(int newsockfd)
 {
 	char buffer[256];
 	int n;
-	while(1)
-	{
-		bzero(buffer, 256);
-		n = read(newsockfd, buffer, 255);
-		if(n < 0)
-			perror("Error when reading socket.\n");
-		if(n == 0)
-			return;
-		printf("Here is the message: %s", buffer);
-		n = write(newsockfd, buffer, strlen(buffer));
-		if(n < 0)
-			perror("Error when writing socket.\n");
-	}
+	bzero(buffer, 256);
+	n = read(newsockfd, buffer, 255);
+	if(n < 0)
+		perror("Error when reading socket.\n");
+	if(n == 0)
+		return;
+	printf("Here is the message: %s", buffer);
+	n = write(newsockfd, buffer, strlen(buffer));
+	if(n < 0)
+		perror("Error when writing socket.\n");
 }
 
 int main()
