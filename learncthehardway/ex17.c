@@ -144,11 +144,19 @@ void Database_set(struct  Connection *conn, int id, const char *name, const char
 	{
 		die("Name copy failed.\n");
 	}
+	if (strlen(name) >= MAX_DATA)
+	{
+		addr->name[MAX_DATA -1 ] = '\0';
+	}
 
 	res = strncpy(addr->email, email, MAX_DATA);
 	if (!res)
 	{
 		die("Email copy failed.\n");
+	}
+	if (strlen(email) >= MAX_DATA)
+	{
+		addr->email[MAX_DATA -1 ] = '\0';
 	}
 }
 
