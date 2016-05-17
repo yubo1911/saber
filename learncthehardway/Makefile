@@ -6,3 +6,5 @@ clean:
 	rm -f ex3
 
 all: ex1 ex2 ex3
+
+ex19: object.o
