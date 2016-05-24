@@ -12,7 +12,7 @@ typedef  struct Shell
 
 	apr_procattr_t *attr;
 	apr_proc_t proc;
-	apr_exit_why_t exit_why;
+	apr_exit_why_e exit_why;
 	int exit_code;
 	int rep_count;
 

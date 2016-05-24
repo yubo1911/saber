@@ -1,19 +1,20 @@
 #include "shell.h"
 #include "db.h"
+#include "dbg.h"
 #include <stdarg.h>
 
 int Shell_exec(Shell template, ...)
 {
 	apr_pool_t *p = NULL;
 	int rc = -1;
-	apr_status_t *rc = APR_SUCCESS;
+	apr_status_t rv = APR_SUCCESS;
 	va_list argp;
 	const char *key = NULL;
 	const char *arg = NULL;
 	int i = 0;
 	int rep_count = 0;
 
-	rv = apr_create_pool(&p, NULL);
+	rv = apr_pool_create(&p, NULL);
 	check(rv == APR_SUCCESS, "Failed to create pool");
 
 	va_start(argp, template);
@@ -55,7 +56,7 @@ int Shell_run(apr_pool_t *p, Shell *cmd)
 	rv = apr_procattr_create(&attr, p);
 	check(rv == APR_SUCCESS, "Failed to create proc attr");
 
-	rv = apr_procattr_io_set(attr, APR_NO_PIPE, APR_NO_PIPE);
+	rv = apr_procattr_io_set(attr, APR_NO_PIPE, APR_NO_PIPE, APR_NO_PIPE);
 	check(rv == APR_SUCCESS, "Failed to set IO of command");
 
 	rv = apr_procattr_dir_set(attr, cmd->dir);
@@ -110,6 +111,13 @@ Shell CURL_SH =
 	.dir = "/tmp",
 	.rep_count = 2,
 	.args = {"curl", "-L", "-o", "TARGET", "URL", NULL}
+};
+
+Shell CONFIGURE_SH =
+{
+	.exe = "./configure",
+	.dir = "/tmp/pkg-build",
+	.args = {"configure", "OPTS", NULL}
 };
 
 Shell MAKE_SH =
