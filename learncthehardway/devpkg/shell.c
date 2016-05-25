@@ -84,7 +84,7 @@ Shell CLEANUP_SH =
 {
 	.exe = "rm",
 	.dir = "/tmp",
-	.rep_count = 1,
+	.rep_count = 0,
 	.args = {"rm", "-rf", "/tmp/pkg-build", "/tmp/pkg-src.tar.gz", 
 		"/tmp/pkg-src.tar.bz2", "/tmp/DEPENDS", NULL}
 };
@@ -117,6 +117,7 @@ Shell CONFIGURE_SH =
 {
 	.exe = "./configure",
 	.dir = "/tmp/pkg-build",
+	.rep_count = 1,
 	.args = {"configure", "OPTS", NULL}
 };
 
