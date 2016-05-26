@@ -39,7 +39,7 @@ void echo_message(int newsockfd)
 
 int main()
 {
-	int sockfd, newsockfd, pid, bind_res;
+	int sockfd, bind_res;
 	socklen_t clilen;
 	struct sockaddr_in server_addr, client_addr;
 	clilen = sizeof(client_addr);
