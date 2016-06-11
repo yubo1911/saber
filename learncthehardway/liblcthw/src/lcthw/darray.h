@@ -57,6 +57,8 @@ static inline void *DArray_remove(DArray *array, int i)
 	array->contents[i] = NULL;
 
 	return el;
+error:
+	return NULL;
 }
 
 static inline void *DArray_new(DArray *array)
