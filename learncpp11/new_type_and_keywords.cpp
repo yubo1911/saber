@@ -1,4 +1,5 @@
 #include <iostream>
+#include <limits.h>
 using namespace std;
 
 int out_i = 0;
@@ -18,8 +19,8 @@ int main()
 {
 	// long long
 	long large = 1 << 31;
-	long long long_large = 1 << 31;
-	long long long_long_large = 1 << 63;
+	long long long_large = LLONG_MAX;
+	long long long_long_large = 1LL << 63;
 	cout<<"test long long: "<<large<<'\t'<<long_large<<'\t'<<long_long_large<<endl;
 
 	// nullptr
