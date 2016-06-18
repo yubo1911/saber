@@ -18,7 +18,7 @@ void no_except2() noexcept(noexcept(no_except()))
 int main()
 {
 	// long long
-	long large = 1 << 31;
+	long large = LONG_MAX;
 	long long long_large = LLONG_MAX;
 	long long long_long_large = 1LL << 63;
 	cout<<"test long long: "<<large<<'\t'<<long_large<<'\t'<<long_long_large<<endl;
