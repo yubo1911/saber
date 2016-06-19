@@ -182,8 +182,6 @@ char *test_move()
 	mu_assert(OList_yfirst(list) == node5, "Failed on yfirst.");
 	mu_assert(OList_ylast(list) == node3, "Failed on ylast.");
 
-	OList_tranvers(list);
-
 	log_info("Move node5.");
 	OList_move(list, node5, 0.0, 5.0);
 	mu_assert(OList_count(list) == 5, "Failed on list count.");
@@ -192,8 +190,6 @@ char *test_move()
 	mu_assert(OList_yfirst(list) == node4, "Failed on yfirst.");
 	mu_assert(OList_ylast(list) == node3, "Failed on ylast.");
 
-	OList_tranvers(list);
-
 	log_info("Move node2.");
 	OList_move(list, node2, -1.0, -1.0);
 	mu_assert(OList_count(list) == 5, "Failed on list count.");
@@ -201,8 +197,6 @@ char *test_move()
 	mu_assert(OList_xlast(list) == node4, "Failed on xlast.");
 	mu_assert(OList_yfirst(list) == node4, "Failed on yfirst.");
 	mu_assert(OList_ylast(list) == node3, "Failed on ylast.");
-	
-	OList_tranvers(list);
 
 	log_info("Move node3.");
 	OList_move(list, node3, -4.5, 1.0);
@@ -212,8 +206,6 @@ char *test_move()
 	mu_assert(OList_yfirst(list) == node4, "Failed on yfirst.");
 	mu_assert(OList_ylast(list) == node3, "Failed on ylast.");
 	
-	OList_tranvers(list);
-
 	log_info("Move node4.");
 	OList_move(list, node4, -4.5, 10.0);
 	mu_assert(OList_count(list) == 5, "Failed on list count.");
@@ -221,8 +213,6 @@ char *test_move()
 	mu_assert(OList_xlast(list) == node2, "Failed on xlast.");
 	mu_assert(OList_yfirst(list) == node2, "Failed on yfirst.");
 	mu_assert(OList_ylast(list) == node4, "Failed on ylast.");
-
-	OList_tranvers(list);
 
 	return NULL;
 }

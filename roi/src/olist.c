@@ -350,8 +350,6 @@ void OList_move(OList *list, OListNode *node, double deltax, double deltay)
 	
 	if(prevynode != NULL)
 	{
-		log_info("prevynode %s", (const char *)prevynode->value);
-		log_info("ylast %s", (const char *)list->ylast->value);
 		OList_remove_without_free(list, node, 0, 1);
 		if(prevynode == list->ylast)
 		{
