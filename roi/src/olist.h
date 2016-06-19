@@ -38,10 +38,13 @@ void OList_clear_destroy(OList *list);
 
 void OList_insert(OList *list, OListNode *node);
 void *OList_remove(OList *list, OListNode *node);
+void OList_remove_without_free(OList *list, OListNode *node, int removex, int removey);
 void OList_roi(OList *list, OListNode *node, double rangex, double rangey, OListNode *roi[]);
 int OList_out_range(OListNode *from, OListNode *to, double rangex, double rangey, int *stopx, int *stopy);
 int OList_has_add_to_roi(OListNode *roi[], int index, OListNode* node);
 void OList_tranvers(OList *list);
+void OList_move(OList *list, OListNode *node, double deltax, double deltay);
+OListNode *OList_find_place(OList *list, OListNode *node, int xy, double delta);
 
 //void OList_push(List *list, void *value);
 //void *OList_pop(List *list);

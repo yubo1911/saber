@@ -276,7 +276,27 @@ void OList_tranvers(OList *list)
 		}
 	}
 	{
+		log_info("Tranverse olist in x reverse:");
+		LIST_FOREACH(list, xlast, xprev, curx)
+		{
+			if (curx)
+			{
+				log_info("%s", (const char *)curx->value);
+			}
+		}
+	}
+	{
 		log_info("Tranverse olist in y:");
+		LIST_FOREACH(list, yfirst, ynext, cury)
+		{
+			if (cury)
+			{
+				log_info("%s", (const char *)cury->value);
+			}
+		}
+	}
+	{
+		log_info("Tranverse olist in y reverse:");
 		LIST_FOREACH(list, ylast, yprev, cury)
 		{
 			if (cury)
@@ -285,4 +305,217 @@ void OList_tranvers(OList *list)
 			}
 		}
 	}
+}
+
+void OList_move(OList *list, OListNode *node, double deltax, double deltay)
+{
+	check(node, "node can't be NULL");
+	check(list, "list can't be NULL");
+	
+	node->x += deltax;
+	node->y += deltay;
+
+	OListNode *prevxnode = OList_find_place(list, node, 1, deltax);
+	OListNode *prevynode = OList_find_place(list, node, 2, deltay);
+
+	if(prevxnode != NULL)
+	{
+		OList_remove_without_free(list, node, 1, 0);
+		if(prevxnode == list->xlast)
+		{
+			OListNode *oldlast = list->xlast;
+			oldlast->xnext = node;
+			node->xprev = oldlast;
+			node->xnext = NULL;
+			list->xlast = node;
+		}
+		else
+		{
+			OListNode *nextnode = prevxnode->xnext;
+			prevxnode->xnext = node;
+			node->xprev = prevxnode;
+			node->xnext = nextnode;
+			nextnode->xprev = node;
+		}
+	}
+	else if(node->x < list->xfirst->x)
+	{
+		OList_remove_without_free(list, node, 1, 0);
+		OListNode *oldfirst = list->xfirst;
+		list->xfirst = node;
+		node->xnext = oldfirst;
+		node->xprev = NULL;
+		oldfirst->xprev = node;
+	}
+	
+	if(prevynode != NULL)
+	{
+		log_info("prevynode %s", (const char *)prevynode->value);
+		log_info("ylast %s", (const char *)list->ylast->value);
+		OList_remove_without_free(list, node, 0, 1);
+		if(prevynode == list->ylast)
+		{
+			OListNode *oldlast = list->ylast;
+			oldlast->ynext = node;
+			node->yprev = oldlast;
+			node->ynext = NULL;
+			list->ylast = node;
+		}
+		else
+		{
+			OListNode *nextnode = prevynode->ynext;
+			prevynode->ynext = node;
+			node->yprev = prevynode;
+			node->ynext = nextnode;
+			nextnode->yprev = node;
+		}
+	}
+	else if(node->y < list->yfirst->y)
+	{
+		OList_remove_without_free(list, node, 0, 1);
+		OListNode *oldfirst = list->yfirst;
+		list->yfirst = node;
+		node->ynext = oldfirst;
+		node->yprev = NULL;
+		oldfirst->yprev = node;
+	}
+error:
+	return;
+}
+
+OListNode *OList_find_place(OList *list, OListNode *node, int xy, double delta)
+{
+	check(xy == 1 || xy == 2, "Search direction must be x(1) or y(2).");
+	if(xy == 1)
+	{
+		OListNode *cur = node;
+		if(delta > 0)
+		{
+			for(cur = node; cur != NULL; cur = cur->xnext)
+			{
+				if(cur->x > node->x)
+				{
+					return cur->xprev;
+				}
+			}
+			if(node == list->xlast) return node->xprev;
+			return list->xlast;
+		}
+		else if (delta < 0)
+		{
+			for(cur = node; cur != NULL; cur = cur->xprev)
+			{
+				if(cur->x < node->x)
+				{
+					return cur;
+				}
+			}
+			return NULL;
+		}
+		else
+		{
+			return node->xprev;
+		}
+	}
+	else if(xy == 2)
+	{
+		OListNode *cur = node;
+		if(delta > 0)
+		{
+			for(cur = node; cur != NULL; cur = cur->ynext)
+			{
+				if(cur->y > node->y)
+				{
+					return cur->yprev;
+				}
+			}
+			if(node == list->ylast) return node->yprev;
+			return list->ylast;
+		}
+		else if (delta < 0)
+		{
+			for(cur = node; cur != NULL; cur = cur->yprev)
+			{
+				if(cur->y < node->y)
+				{
+					return cur;
+				}
+			}
+			return NULL;
+		}
+		else
+		{
+			return node->yprev;
+		}
+	}
+
+error:
+	exit(-1);
+
+}
+
+void OList_remove_without_free(OList *list, OListNode *node, int removex, int removey)
+{
+	check(node, "node can't be NULL");
+	if(removex)
+	{
+		check(list->xfirst && list->xlast, "List is empty.");
+		// x direction
+		if (node == list->xfirst && node == list->xlast)
+		{
+			list->xfirst = NULL;
+			list->xlast = NULL;
+		}
+		else if (node == list->xfirst)
+		{
+			list->xfirst = node->xnext;
+			check(list->xfirst != NULL, "Invalid list, somehow got a first that is NULL.");
+			list->xfirst->xprev = NULL;
+		}
+		else if (node == list->xlast)
+		{
+			list->xlast = node->xprev;
+			check(list->xlast != NULL, "Invalid list, somehow got a last that is NULL.");
+			list->xlast->xnext = NULL;
+		}
+		else
+		{
+			OListNode *after = node->xnext;
+			OListNode *before = node->xprev;
+			after->xprev = before;
+			before->xnext = after;
+		}
+	}
+
+	if(removey)
+	{
+		check(list->yfirst && list->ylast, "List is empty.");
+		// y direction
+		if (node == list->yfirst && node == list->ylast)
+		{
+			list->yfirst = NULL;
+			list->ylast = NULL;
+		}
+		else if (node == list->yfirst)
+		{
+			list->yfirst = node->ynext;
+			check(list->yfirst != NULL, "Invalid list, somehow got a first that is NULL.");
+			list->yfirst->yprev = NULL;
+		}
+		else if (node == list->ylast)
+		{
+			list->ylast = node->yprev;
+			check(list->ylast != NULL, "Invalid list, somehow got a last that is NULL.");
+			list->ylast->ynext = NULL;
+		}
+		else
+		{
+			OListNode *after = node->ynext;
+			OListNode *before = node->yprev;
+			after->yprev = before;
+			before->ynext = after;
+		}
+	}
+error:
+	return;
 }
