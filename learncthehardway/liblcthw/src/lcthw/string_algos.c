@@ -21,7 +21,7 @@ static inline void String_setup_skip_chars(
 
 static inline const unsigned char *String_base_search(
 		const unsigned char *haystack, ssize_t hlen,
-		const unsigned char *needle, ssize_t nlen
+		const unsigned char *needle, ssize_t nlen,
 		size_t *skip_chars)
 {
 	size_t i = 0;
@@ -68,7 +68,7 @@ int String_find(bstring in, bstring what)
 	return found != NULL ? found - haystack : -1;
 }
 
-StringScanner *StringScanner_creat(bstring in)
+StringScanner *StringScanner_create(bstring in)
 {
 	StringScanner *scan = calloc(1, sizeof(StringScanner));
 	check_mem(scan);
