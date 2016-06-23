@@ -60,4 +60,12 @@ int main()
 	//decltype((val6)) val23; //wrong. decltype((val6)) == double&, must be initialized.
 	decltype(val6) val24;
 	cout<<"test decltype and reference:\n"<<val22<<'\t'<<val24<<endl;
+
+	// using auto to short type
+	string name = "Yubo";
+	auto length = name.size();
+	cout<<"test auto with complex type:\n"<<length<<endl;
+
+	// using auto to simplify declare
+
 }
