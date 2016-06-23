@@ -1,7 +1,12 @@
 #include <iostream>
-#include <iomanip>
 
 using namespace std;
+
+int d()
+{
+	cout<<"This function shouldn't be called."<<endl;
+	return 17;
+}
 
 int main()
 {
@@ -38,4 +43,21 @@ int main()
 	//aval15 = 16; // wrong. const reference.
 	//auto &aval16 = aval7, *aval17 = &val7; // wrong. type not consistent
 	cout<<"test auto and const:\n"<<val7<<'\t'<<rval7<<'\t'<<aval7<<'\t'<<aval8<<'\t'<<*aval9<<'\t'<<aval10<<'\t'<<aval11<<'\t'<<aval12<<'\t'<<aval13<<'\t'<<aval15<<endl;
+
+	// simple decltype
+	decltype(d()) dval17 = 15.2;
+	cout<<"test decltype:\n"<<dval17<<endl;
+
+	// decltype and const
+	decltype(val7) val18 = 0;
+	decltype(rval7) val19 = val18;
+	//val19 = 10; // wrong. val19 is a reference to const int.
+	cout<<"test decltype and const:\n"<<val18<<'\t'<<val19<<endl;
+
+	//double *pval20 = &val6;
+	//decltype(*pval20) val21; // wrong. decltype(*pval20) = double&, must be initialized.
+	decltype(val6 + 0) val22;
+	//decltype((val6)) val23; //wrong. decltype((val6)) == double&, must be initialized.
+	decltype(val6) val24;
+	cout<<"test decltype and reference:\n"<<val22<<'\t'<<val24<<endl;
 }
