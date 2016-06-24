@@ -8,6 +8,13 @@ int d()
 	return 17;
 }
 
+int odd[] = {1, 3, 5, 7, 9};
+int even[] = {0, 2, 4, 6, 8};
+decltype(odd) *get_odd_or_even(int i)
+{
+	return (i % 2) ? &odd : &even;
+}
+
 int main()
 {
 	// simple auto
@@ -67,5 +74,47 @@ int main()
 	cout<<"test auto with complex type:\n"<<length<<endl;
 
 	// using auto to simplify declare
-
+	int val25[3][4] = {
+		{0, 1, 2, 3},
+		{4, 5, 6, 7},
+		{8, 9, 10, 11}
+	};
+	cout<<"test auto to simplify type:\n";
+	cout<<"old way:\n";
+	for(int (*p)[4] = val25; p != val25 + 3; p++)
+	{
+		for(int *q = *p; q != *p + 4; q++)
+		{
+			cout<<*q<<'\t';
+		}
+		cout<<'\n';
+	}
+	cout<<"new way:\n";
+	for(auto ap = val25; ap != val25 + 3; ap++)
+	{
+		for(auto aq = *ap; aq != *ap + 4; aq++)
+		{
+			cout<<*aq<<'\t';
+		}
+		cout<<'\n';
+	}
+	// decltype to simplify func return type
+	auto val26 = get_odd_or_even(1);
+	cout<<"test decltype to simplify func return type:\n";
+	for(auto p = begin(*val26); p != end(*val26); p++)
+	{
+		cout<<*p<<'\t';
+	}
+	cout<<endl;
+	// auto to new object with a given obj
+	auto val27 = new auto(val24);
+	auto val28 = new auto(name);
+	cout<<"test auto to new object with a given obj:\n";
+	cout<<*val27<<'\t'<<*val28<<'\t'<<val28<<'\t'<<&name<<endl;
+	auto val29 = new auto(odd); // wrong. can't use auto to new an array
+	for(auto p = *val29; p != *val29 + 5; p++)
+	{
+		cout<<*p<<'\t';
+	}
+	cout<<endl;
 }
