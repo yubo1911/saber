@@ -116,7 +116,9 @@ int main()
 	{
 		cout<<p<<' '<<*p<<'\t';
 	}
+	cout<<endl;
 
 	//auto val30 = new auto[10](val24); // wrong. can't use auto to new an array
-	cout<<endl;
+	int *val31 = new int[10]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // this is right
+	cout<<val31<<'\t'<<val31[0]<<"to"<<val31[9]<<endl;
 }
