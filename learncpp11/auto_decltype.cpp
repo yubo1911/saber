@@ -103,7 +103,7 @@ int main()
 	cout<<"test decltype to simplify func return type:\n";
 	for(auto p = begin(*val26); p != end(*val26); p++)
 	{
-		cout<<*p<<'\t';
+		cout<<p<<' '<<*p<<'\t';
 	}
 	cout<<endl;
 	// auto to new object with a given obj
@@ -111,10 +111,12 @@ int main()
 	auto val28 = new auto(name);
 	cout<<"test auto to new object with a given obj:\n";
 	cout<<*val27<<'\t'<<*val28<<'\t'<<val28<<'\t'<<&name<<endl;
-	auto val29 = new auto(odd); // wrong. can't use auto to new an array
+	auto val29 = new auto(odd); // right. can use auto to new a pointer to an array
 	for(auto p = *val29; p != *val29 + 5; p++)
 	{
-		cout<<*p<<'\t';
+		cout<<p<<' '<<*p<<'\t';
 	}
+
+	//auto val30 = new auto[10](val24); // wrong. can't use auto to new an array
 	cout<<endl;
 }
