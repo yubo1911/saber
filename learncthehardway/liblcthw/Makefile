@@ -40,6 +40,8 @@ clean:
 	rm -rf build $(OBJECTS) $(TESTS)
 	rm -f tests/tests.log
 	find . -name "*.gc*" -exec rm {} \;
+	find . -name "cachegrind.out.*" -exec rm {} \;
+	find . -name "callgrind.out.*" -exec rm {} \;
 	rm -rf `find . -name "*.dSYM" -print`
 
 install: all
