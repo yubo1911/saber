@@ -17,7 +17,7 @@ char *test_create()
 char *test_destroy()
 {
 	mu_assert(queue != NULL, "Failed to make queue #2.");
-	Queue_destroy();
+	Queue_destroy(queue);
 
 	return NULL;
 }

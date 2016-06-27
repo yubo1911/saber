@@ -17,7 +17,7 @@ char *test_create()
 char *test_destroy()
 {
 	mu_assert(stack != NULL, "Failed to make stack #2.");
-	Stack_destroy();
+	Stack_destroy(stack);
 
 	return NULL;
 }
