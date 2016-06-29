@@ -42,4 +42,16 @@ int main()
 	for_each(begin(test_data), end(test_data), f8);
 	cout<<endl;
 	cout<<1<<space<<2<<endl;
+
+	cout<<"Test lambda with return type:\n";
+	auto f9 = [](const int i){if(i % 3) return i * 3; else return i;};
+	transform(begin(test_data), end(test_data), begin(test_data), f9);
+	border = 0;
+	for_each(begin(test_data), end(test_data), f6);
+	cout<<endl;
+	auto f10 = [](const int i) -> double
+	{if(i % 5) return i * 5.0; else return i;};
+	transform(begin(test_data), end(test_data), begin(test_data), f10);
+	for_each(begin(test_data), end(test_data), f6);
+	cout<<endl;
 }
