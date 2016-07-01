@@ -6,23 +6,23 @@
 struct OListNode;
 #define MAX_ROI_NUM 30
 
+#define COORD_NUM 2
+#define COORD_X 0
+#define COORD_Y 1
+
 typedef struct OListNode 
 {
-	struct OListNode *xnext;
-	struct OListNode *xprev;
-	struct OListNode *ynext;
-	struct OListNode *yprev;
-	double x, y;
+	struct OListNode *next[COORD_NUM];
+	struct OListNode *prev[COORD_NUM];
+	double pos[COORD_NUM];
 	void *value;
 } OListNode;
 
 typedef struct OList 
 {
 	int count;
-	OListNode *xfirst;
-	OListNode *xlast;
-	OListNode *yfirst;
-	OListNode *ylast;
+	OListNode *first[COORD_NUM];
+	OListNode *last[COORD_NUM];
 } OList;
 
 OList *OList_create();
@@ -31,10 +31,8 @@ void OList_clear(OList *list);
 void OList_clear_destroy(OList *list);
 
 #define OList_count(A) ((A)->count)
-#define OList_xfirst(A) ((A)->xfirst != NULL ? (A)->xfirst : NULL)
-#define OList_xlast(A) ((A)->xlast != NULL ? (A)->xlast : NULL)
-#define OList_yfirst(A) ((A)->yfirst != NULL ? (A)->yfirst : NULL)
-#define OList_ylast(A) ((A)->ylast != NULL ? (A)->ylast : NULL)
+#define OList_first(A, N) ((A)->first[N] != NULL ? (A)->first[N] : NULL)
+#define OList_last(A, N) ((A)->last[N] != NULL ? (A)->last[N] : NULL)
 
 void OList_insert(OList *list, OListNode *node);
 void *OList_remove(OList *list, OListNode *node);

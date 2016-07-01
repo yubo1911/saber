@@ -1,11 +1,17 @@
 #include <olist.h>
 #include <dbg.h>
 
+static inline void OList_insert_helper(OList *list, OListNode *node, int coord);
+static inline void OList_remove_helper(OList *list, OListNode *node, int coord);
+static inline void OList_traverse_helper(OList *list, int coord, int reverse);
+static inline void OList_move_helper(OList *list, OListNode *node, OListNode *prevnode[COORD_NUM], int coord);
+static inline void OList_remove_without_free_helper(OList *list, OListNode *node, int coord);
+
 OList *OList_create()
 {
 	OList *list = calloc(1, sizeof(OList));
-	list->xfirst = list->xlast = NULL;
-	list->yfirst = list->ylast = NULL;
+	list->first[COORD_X] = list->last[COORD_X] = NULL;
+	list->first[COORD_Y] = list->last[COORD_Y] = NULL;
 	list->count = 0;
 	return list;
 }
@@ -13,22 +19,22 @@ OList *OList_create()
 void OList_destroy(OList *list)
 {
 	// Just need go through x direction
-	LIST_FOREACH(list, xfirst, xnext, cur)
+	LIST_FOREACH(list, first[COORD_X], next[COORD_X], cur)
 	{
-		if (cur->xprev)
+		if (cur->prev[COORD_X])
 		{
-			free(cur->xprev);
+			free(cur->prev[COORD_X]);
 		}
 	}
 
-	free(list->xlast);
+	free(list->last[COORD_X]);
 	free(list);
 }
 
 void OList_clear(OList *list)
 {
 	// Just need go through x direction
-	LIST_FOREACH(list, xfirst, xnext, cur)
+	LIST_FOREACH(list, first[COORD_X], next[COORD_X], cur)
 	{
 		free(cur->value);
 	}
@@ -44,153 +50,103 @@ void OList_insert(OList *list, OListNode *node)
 {
 	check(node, "node can't be NULL");
 	check(list, "list can't be NULL");
-	
-	// x direction
-	if (list->xfirst == NULL) // empty list
-	{
-		list->xfirst = list->xlast = node;
-		node->xprev = node->xnext = NULL;
-	}
-	else if (node->x < list->xfirst->x) // insert first
-	{
-		OListNode *oldfirst = list->xfirst;
-		list->xfirst = node;
-		node->xnext = oldfirst;
-		node->xprev = NULL;
-		oldfirst->xprev = node;
-	}
-	else
-	{
-		LIST_FOREACH(list, xfirst, xnext, cur)
-		{
-			if (cur->xnext == NULL) // insert last
-			{
-				cur->xnext = node;
-				node->xprev = cur;
-				node->xnext = NULL;
-				list->xlast = node;
-				break;
-			}
-			else if (node->x < cur->xnext->x) // insert normally
-			{
-				OListNode *oldnext = cur->xnext;
-				cur->xnext = node;
-				node->xnext = oldnext;
-				oldnext->xprev = node;
-				node->xprev = cur;
-				break;
-			}
-		}
-	}
-	
-	// y direction
-	if (list->yfirst == NULL) // empty list
-	{
-		list->yfirst = list->ylast = node;
-		node->ynext = node->yprev = NULL;
-	}
-	else if (node->y < list->yfirst->y) // insert first
-	{
-		OListNode *oldfirst = list->yfirst;
-		list->yfirst = node;
-		node->ynext = oldfirst;
-		node->yprev = NULL;
-		oldfirst->yprev = node;
-	}
-	else
-	{
-		LIST_FOREACH(list, yfirst, ynext, cur)
-		{
-			if (cur->ynext == NULL) // insert last
-			{
-				cur->ynext = node;
-				node->yprev = cur;
-				node->ynext = NULL;
-				list->ylast = node;
-				break;
-			}
-			else if (node->y < cur->ynext->y) // insert normally
-			{
-				OListNode *oldnext = cur->ynext;
-				cur->ynext = node;
-				node->ynext = oldnext;
-				oldnext->yprev = node;
-				node->yprev = cur;
-				break;
-			}
-		}
-	}
 
+	OList_insert_helper(list, node, COORD_X);
+	OList_insert_helper(list, node, COORD_Y);
 	list->count++;
 
 error:
 	return;
+
 }
+
+static inline void OList_insert_helper(OList *list, OListNode *node, int coord)
+{
+	if (list->first[coord] == NULL) // empty list
+	{
+		list->first[coord] = list->last[coord] = node;
+		node->prev[coord] = node->next[coord] = NULL;
+	}
+	else if (node->pos[coord] < list->first[coord]->pos[coord]) // insert first
+	{
+		OListNode *oldfirst = list->first[coord];
+		list->first[coord] = node;
+		node->next[coord] = oldfirst;
+		node->prev[coord] = NULL;
+		oldfirst->prev[coord] = node;
+	}
+	else
+	{
+		LIST_FOREACH(list, first[coord], next[coord], cur)
+		{
+			if (cur->next[coord] == NULL) // insert last
+			{
+				cur->next[coord] = node;
+				node->prev[coord] = cur;
+				node->next[coord] = NULL;
+				list->last[coord] = node;
+				break;
+			}
+			else if (node->pos[coord] < cur->next[coord]->pos[coord]) // insert normally
+			{
+				OListNode *oldnext = cur->next[coord];
+				cur->next[coord] = node;
+				node->next[coord] = oldnext;
+				oldnext->prev[coord] = node;
+				node->prev[coord] = cur;
+				break;
+			}
+		}
+	}
+	
+}
+
 void *OList_remove(OList *list, OListNode *node)
 {
 	void *result = NULL;
 
-	check(list->xfirst && list->xlast, "List is empty.");
+	check(list->first[COORD_X] && list->last[COORD_X], "List is empty.");
 	check(node, "node can't be NULL");
+
+	OList_remove_helper(list, node, COORD_X);
+	OList_remove_helper(list, node, COORD_Y);
 	
-	// x direction
-	if (node == list->xfirst && node == list->xlast)
-	{
-		list->xfirst = NULL;
-		list->xlast = NULL;
-	}
-	else if (node == list->xfirst)
-	{
-		list->xfirst = node->xnext;
-		check(list->xfirst != NULL, "Invalid list, somehow got a first that is NULL.");
-		list->xfirst->xprev = NULL;
-	}
-	else if (node == list->xlast)
-	{
-		list->xlast = node->xprev;
-		check(list->xlast != NULL, "Invalid list, somehow got a last that is NULL.");
-		list->xlast->xnext = NULL;
-	}
-	else
-	{
-		OListNode *after = node->xnext;
-		OListNode *before = node->xprev;
-		after->xprev = before;
-		before->xnext = after;
-	}
-
-	// y direction
-	if (node == list->yfirst && node == list->ylast)
-	{
-		list->yfirst = NULL;
-		list->ylast = NULL;
-	}
-	else if (node == list->yfirst)
-	{
-		list->yfirst = node->ynext;
-		check(list->yfirst != NULL, "Invalid list, somehow got a first that is NULL.");
-		list->yfirst->yprev = NULL;
-	}
-	else if (node == list->ylast)
-	{
-		list->ylast = node->yprev;
-		check(list->ylast != NULL, "Invalid list, somehow got a last that is NULL.");
-		list->ylast->ynext = NULL;
-	}
-	else
-	{
-		OListNode *after = node->ynext;
-		OListNode *before = node->yprev;
-		after->yprev = before;
-		before->ynext = after;
-	}
-
 	list->count--;
 	result = node->value;
 	free(node);
-
 error:
 	return result;
+}
+
+static inline void OList_remove_helper(OList *list, OListNode *node, int coord)
+{
+	if (node == list->first[coord] && node == list->last[coord])
+	{
+		list->first[coord] = NULL;
+		list->last[coord] = NULL;
+	}
+	else if (node == list->first[coord])
+	{
+		list->first[coord] = node->next[coord];
+		check(list->first[coord] != NULL, "Invalid list, somehow got a first that is NULL.");
+		list->first[coord]->prev[coord] = NULL;
+	}
+	else if (node == list->last[coord])
+	{
+		list->last[coord] = node->prev[coord];
+		check(list->last[coord] != NULL, "Invalid list, somehow got a last that is NULL.");
+		list->last[coord]->next[coord] = NULL;
+	}
+	else
+	{
+		OListNode *after = node->next[coord];
+		OListNode *before = node->prev[coord];
+		after->prev[coord] = before;
+		before->next[coord] = after;
+	}
+
+error:
+	return;
 }
 
 void OList_roi(OList *list, OListNode *node, double rangex, double rangey, OListNode *roi[])
@@ -227,10 +183,10 @@ void OList_roi(OList *list, OListNode *node, double rangex, double rangey, OList
 		if(!outdown && !OList_has_add_to_roi(roi, index, down)) roi[index++] = down;
 		if(index >= MAX_ROI_NUM) break;
 		
-		if(left) left = left->xprev;
-		if(right) right = right->xnext;
-		if(up) up = up->yprev;
-		if(down) down = down->ynext;
+		if(left) left = left->prev[COORD_X];
+		if(right) right = right->next[COORD_X];
+		if(up) up = up->prev[COORD_Y];
+		if(down) down = down->next[COORD_Y];
 	}
 
 error:
@@ -246,8 +202,8 @@ int OList_out_range(OListNode *from, OListNode *to, double rangex, double rangey
 		return 1;
 	}
 	
-	int outx = abs(from->x - to->x) > rangex;
-	int outy = abs(from->y - to->y) > rangey;
+	int outx = abs(from->pos[COORD_X] - to->pos[COORD_X]) > rangex;
+	int outy = abs(from->pos[COORD_Y] - to->pos[COORD_Y]) > rangey;
 	if(stopx) *stopx = outx;
 	if(stopy) *stopy = outy;
 	return outx || outy;
@@ -263,48 +219,43 @@ int OList_has_add_to_roi(OListNode *roi[], int index, OListNode* node)
 	return 0;
 }
 
+static inline void OList_traverse_helper(OList *list, int coord, int reverse)
+{
+	if(!reverse)
+	{
+		LIST_FOREACH(list, first[coord], next[coord], cur)
+		{
+			if (cur)
+			{
+				log_info("%s", (const char *)cur->value);
+			}
+		}
+	}
+	else
+	{
+		LIST_FOREACH(list, last[coord], prev[coord], cur)
+		{
+			if (cur)
+			{
+				log_info("%s", (const char *)cur->value);
+			}
+		}
+	}
+}
+
 void OList_tranvers(OList *list)
 {
-	{
-		log_info("Tranverse olist in x:");
-		LIST_FOREACH(list, xfirst, xnext, curx)
-		{
-			if (curx)
-			{
-				log_info("%s", (const char *)curx->value);
-			}
-		}
-	}
-	{
-		log_info("Tranverse olist in x reverse:");
-		LIST_FOREACH(list, xlast, xprev, curx)
-		{
-			if (curx)
-			{
-				log_info("%s", (const char *)curx->value);
-			}
-		}
-	}
-	{
-		log_info("Tranverse olist in y:");
-		LIST_FOREACH(list, yfirst, ynext, cury)
-		{
-			if (cury)
-			{
-				log_info("%s", (const char *)cury->value);
-			}
-		}
-	}
-	{
-		log_info("Tranverse olist in y reverse:");
-		LIST_FOREACH(list, ylast, yprev, cury)
-		{
-			if (cury)
-			{
-				log_info("%s", (const char *)cury->value);
-			}
-		}
-	}
+	log_info("Tranverse olist in x:");
+	OList_traverse_helper(list, COORD_X, 0);
+	
+	log_info("Tranverse olist in x reverse:");
+	OList_traverse_helper(list, COORD_X, 1);
+	
+	log_info("Tranverse olist in y:");
+	OList_traverse_helper(list, COORD_Y, 0);
+
+	log_info("Tranverse olist in y reverse:");
+	OList_traverse_helper(list, COORD_Y, 1);
 }
 
 void OList_move(OList *list, OListNode *node, double deltax, double deltay)
@@ -312,139 +263,81 @@ void OList_move(OList *list, OListNode *node, double deltax, double deltay)
 	check(node, "node can't be NULL");
 	check(list, "list can't be NULL");
 	
-	node->x += deltax;
-	node->y += deltay;
-
-	OListNode *prevxnode = OList_find_place(list, node, 1, deltax);
-	OListNode *prevynode = OList_find_place(list, node, 2, deltay);
-
-	if(prevxnode != NULL)
-	{
-		OList_remove_without_free(list, node, 1, 0);
-		if(prevxnode == list->xlast)
-		{
-			OListNode *oldlast = list->xlast;
-			oldlast->xnext = node;
-			node->xprev = oldlast;
-			node->xnext = NULL;
-			list->xlast = node;
-		}
-		else
-		{
-			OListNode *nextnode = prevxnode->xnext;
-			prevxnode->xnext = node;
-			node->xprev = prevxnode;
-			node->xnext = nextnode;
-			nextnode->xprev = node;
-		}
-	}
-	else if(node->x < list->xfirst->x)
-	{
-		OList_remove_without_free(list, node, 1, 0);
-		OListNode *oldfirst = list->xfirst;
-		list->xfirst = node;
-		node->xnext = oldfirst;
-		node->xprev = NULL;
-		oldfirst->xprev = node;
-	}
-	
-	if(prevynode != NULL)
-	{
-		OList_remove_without_free(list, node, 0, 1);
-		if(prevynode == list->ylast)
-		{
-			OListNode *oldlast = list->ylast;
-			oldlast->ynext = node;
-			node->yprev = oldlast;
-			node->ynext = NULL;
-			list->ylast = node;
-		}
-		else
-		{
-			OListNode *nextnode = prevynode->ynext;
-			prevynode->ynext = node;
-			node->yprev = prevynode;
-			node->ynext = nextnode;
-			nextnode->yprev = node;
-		}
-	}
-	else if(node->y < list->yfirst->y)
-	{
-		OList_remove_without_free(list, node, 0, 1);
-		OListNode *oldfirst = list->yfirst;
-		list->yfirst = node;
-		node->ynext = oldfirst;
-		node->yprev = NULL;
-		oldfirst->yprev = node;
-	}
+	node->pos[COORD_X] += deltax;
+	node->pos[COORD_Y] += deltay;
+	OListNode *prevnode[COORD_NUM] = {0};
+	prevnode[COORD_X] = OList_find_place(list, node, COORD_X, deltax);
+	prevnode[COORD_Y] = OList_find_place(list, node, COORD_Y, deltay);
+	OList_move_helper(list, node, prevnode, COORD_X);
+	OList_move_helper(list, node, prevnode, COORD_Y);
 error:
 	return;
 }
 
-OListNode *OList_find_place(OList *list, OListNode *node, int xy, double delta)
+static inline void OList_move_helper(OList *list, OListNode *node, OListNode *prevnode[COORD_NUM], int coord)
 {
-	check(xy == 1 || xy == 2, "Search direction must be x(1) or y(2).");
-	if(xy == 1)
+	if(prevnode[coord] != NULL)
 	{
-		OListNode *cur = node;
-		if(delta > 0)
+		OList_remove_without_free(list, node, coord==COORD_X, coord==COORD_Y);
+		if(prevnode[coord] == list->last[coord])
 		{
-			for(cur = node; cur != NULL; cur = cur->xnext)
-			{
-				if(cur->x > node->x)
-				{
-					return cur->xprev;
-				}
-			}
-			if(node == list->xlast) return node->xprev;
-			return list->xlast;
-		}
-		else if (delta < 0)
-		{
-			for(cur = node; cur != NULL; cur = cur->xprev)
-			{
-				if(cur->x < node->x)
-				{
-					return cur;
-				}
-			}
-			return NULL;
+			OListNode *oldlast = list->last[coord];
+			oldlast->next[coord] = node;
+			node->prev[coord] = oldlast;
+			node->next[coord] = NULL;
+			list->last[coord] = node;
 		}
 		else
 		{
-			return node->xprev;
+			OListNode *nextnode = prevnode[coord]->next[coord];
+			prevnode[coord]->next[coord] = node;
+			node->prev[coord] = prevnode[coord];
+			node->next[coord] = nextnode;
+			nextnode->prev[coord] = node;
 		}
 	}
-	else if(xy == 2)
+	else if(node->pos[coord] < list->first[coord]->pos[coord])
 	{
-		OListNode *cur = node;
-		if(delta > 0)
+		OList_remove_without_free(list, node, coord==COORD_X, coord==COORD_Y);
+		OListNode *oldfirst = list->first[coord];
+		list->first[coord] = node;
+		node->next[coord] = oldfirst;
+		node->prev[coord] = NULL;
+		oldfirst->prev[coord] = node;
+	}
+}
+
+OListNode *OList_find_place(OList *list, OListNode *node, int coord, double delta)
+{
+	check(coord == COORD_X || coord == COORD_Y, "Search direction must be x(0) or y(1).");
+
+	OListNode *cur = node;
+	if(delta > 0)
+	{
+		for(cur = node; cur != NULL; cur = cur->next[coord])
 		{
-			for(cur = node; cur != NULL; cur = cur->ynext)
+			if(cur->pos[coord] > node->pos[coord])
 			{
-				if(cur->y > node->y)
-				{
-					return cur->yprev;
-				}
+				return cur->prev[coord];
 			}
-			if(node == list->ylast) return node->yprev;
-			return list->ylast;
 		}
-		else if (delta < 0)
+		if(node == list->last[coord]) return node->prev[coord];
+		return list->last[coord];
+	}
+	else if (delta < 0)
+	{
+		for(cur = node; cur != NULL; cur = cur->prev[coord])
 		{
-			for(cur = node; cur != NULL; cur = cur->yprev)
+			if(cur->pos[coord] < node->pos[coord])
 			{
-				if(cur->y < node->y)
-				{
-					return cur;
-				}
+				return cur;
 			}
-			return NULL;
 		}
-		else
-		{
-			return node->yprev;
-		}
+		return NULL;
+	}
+	else
+	{
+		return node->prev[coord];
 	}
 
 error:
@@ -457,63 +350,46 @@ void OList_remove_without_free(OList *list, OListNode *node, int removex, int re
 	check(node, "node can't be NULL");
 	if(removex)
 	{
-		check(list->xfirst && list->xlast, "List is empty.");
-		// x direction
-		if (node == list->xfirst && node == list->xlast)
-		{
-			list->xfirst = NULL;
-			list->xlast = NULL;
-		}
-		else if (node == list->xfirst)
-		{
-			list->xfirst = node->xnext;
-			check(list->xfirst != NULL, "Invalid list, somehow got a first that is NULL.");
-			list->xfirst->xprev = NULL;
-		}
-		else if (node == list->xlast)
-		{
-			list->xlast = node->xprev;
-			check(list->xlast != NULL, "Invalid list, somehow got a last that is NULL.");
-			list->xlast->xnext = NULL;
-		}
-		else
-		{
-			OListNode *after = node->xnext;
-			OListNode *before = node->xprev;
-			after->xprev = before;
-			before->xnext = after;
-		}
+		OList_remove_without_free_helper(list, node, COORD_X);
 	}
 
 	if(removey)
 	{
-		check(list->yfirst && list->ylast, "List is empty.");
-		// y direction
-		if (node == list->yfirst && node == list->ylast)
-		{
-			list->yfirst = NULL;
-			list->ylast = NULL;
-		}
-		else if (node == list->yfirst)
-		{
-			list->yfirst = node->ynext;
-			check(list->yfirst != NULL, "Invalid list, somehow got a first that is NULL.");
-			list->yfirst->yprev = NULL;
-		}
-		else if (node == list->ylast)
-		{
-			list->ylast = node->yprev;
-			check(list->ylast != NULL, "Invalid list, somehow got a last that is NULL.");
-			list->ylast->ynext = NULL;
-		}
-		else
-		{
-			OListNode *after = node->ynext;
-			OListNode *before = node->yprev;
-			after->yprev = before;
-			before->ynext = after;
-		}
+		OList_remove_without_free_helper(list, node, COORD_Y);
 	}
+error:
+	return;
+}
+
+static inline void OList_remove_without_free_helper(OList *list, OListNode *node, int coord)
+{
+	check(list->first[coord] && list->last[coord], "List is empty.");
+	
+	if (node == list->first[coord] && node == list->last[coord])
+	{
+		list->first[coord] = NULL;
+		list->last[coord] = NULL;
+	}
+	else if (node == list->first[coord])
+	{
+		list->first[coord] = node->next[coord];
+		check(list->first[coord] != NULL, "Invalid list, somehow got a first that is NULL.");
+		list->first[coord]->prev[coord] = NULL;
+	}
+	else if (node == list->last[coord])
+	{
+		list->last[coord] = node->prev[coord];
+		check(list->last[coord] != NULL, "Invalid list, somehow got a last that is NULL.");
+		list->last[coord]->next[coord] = NULL;
+	}
+	else
+	{
+		OListNode *after = node->next[coord];
+		OListNode *before = node->prev[coord];
+		after->prev[coord] = before;
+		before->next[coord] = after;
+	}
+
 error:
 	return;
 }
