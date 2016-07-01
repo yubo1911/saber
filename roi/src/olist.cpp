@@ -1,5 +1,8 @@
 #include <olist.h>
 #include <dbg.h>
+#include <set>
+
+using std::set;
 
 static inline void OList_insert_helper(OList *list, OListNode *node, int coord);
 static inline void OList_remove_helper(OList *list, OListNode *node, int coord);
@@ -9,7 +12,7 @@ static inline void OList_remove_without_free_helper(OList *list, OListNode *node
 
 OList *OList_create()
 {
-	OList *list = calloc(1, sizeof(OList));
+	OList *list = (OList *)calloc(1, sizeof(OList));
 	list->first[COORD_X] = list->last[COORD_X] = NULL;
 	list->first[COORD_Y] = list->last[COORD_Y] = NULL;
 	list->count = 0;
@@ -149,19 +152,18 @@ error:
 	return;
 }
 
-void OList_roi(OList *list, OListNode *node, double rangex, double rangey, OListNode *roi[])
+void OList_roi(OList *list, OListNode *node, double rangex, double rangey, std::set<OListNode*> &roi)
 {
+	OListNode *left = node, *right = node, *up = node, *down = node;
+	int outleft, outright, outup, outdown, stopleft, stopright, stopup, stopdown;
+	
 	check(node, "node can't be NULL");
 	check(list, "list can't be NULL");
 	check(rangex > 0 && rangey > 0, "range should > 0");
-	check(roi, "result list can't be NULL");
 	
-	int index = 0;
-	OListNode *left = node, *right = node, *up = node, *down = node;
-	int outleft, outright, outup, outdown, stopleft, stopright, stopup, stopdown;
 	outleft = outright = outup = outdown = 0;
 	stopleft = stopright = stopup = stopdown = 0;
-	while(index < MAX_ROI_NUM)
+	while(roi.size() < MAX_ROI_NUM)
 	{
 		if(left == NULL && right == NULL && up == NULL && down == NULL) break;
 		if(stopleft == 0 && left != NULL) outleft = OList_out_range(node, left, rangex, rangey, &stopleft, NULL);
@@ -171,17 +173,17 @@ void OList_roi(OList *list, OListNode *node, double rangex, double rangey, OList
 		
 		if(stopleft && stopright && stopup && stopdown) break;
 
-		if(!outleft && !OList_has_add_to_roi(roi, index, left)) roi[index++] = left;
-		if(index >= MAX_ROI_NUM) break;
+		if(!outleft && !OList_has_add_to_roi(roi, left)) roi.insert(left);
+		if(roi.size() >= MAX_ROI_NUM) break;
 
-		if(!outright && !OList_has_add_to_roi(roi, index, right)) roi[index++] = right;
-		if(index >= MAX_ROI_NUM) break;
+		if(!outright && !OList_has_add_to_roi(roi, right)) roi.insert(right);
+		if(roi.size() >= MAX_ROI_NUM) break;
 
-		if(!outup && !OList_has_add_to_roi(roi, index, up)) roi[index++] = up;
-		if(index >= MAX_ROI_NUM) break;
+		if(!outup && !OList_has_add_to_roi(roi, up)) roi.insert(up);
+		if(roi.size() >= MAX_ROI_NUM) break;
 
-		if(!outdown && !OList_has_add_to_roi(roi, index, down)) roi[index++] = down;
-		if(index >= MAX_ROI_NUM) break;
+		if(!outdown && !OList_has_add_to_roi(roi, down)) roi.insert(down);
+		if(roi.size() >= MAX_ROI_NUM) break;
 		
 		if(left) left = left->prev[COORD_X];
 		if(right) right = right->next[COORD_X];
@@ -209,14 +211,9 @@ int OList_out_range(OListNode *from, OListNode *to, double rangex, double rangey
 	return outx || outy;
 }
 
-int OList_has_add_to_roi(OListNode *roi[], int index, OListNode* node)
+int OList_has_add_to_roi(std::set<OListNode*> &roi, OListNode* node)
 {
-	int i = 0;
-	for(i = 0; i < index; i++)
-	{
-		if(roi[i] == node) return 1;
-	}
-	return 0;
+	return roi.count(node);
 }
 
 static inline void OList_traverse_helper(OList *list, int coord, int reverse)
@@ -260,12 +257,12 @@ void OList_tranvers(OList *list)
 
 void OList_move(OList *list, OListNode *node, double deltax, double deltay)
 {
+	OListNode *prevnode[COORD_NUM] = {0};
 	check(node, "node can't be NULL");
 	check(list, "list can't be NULL");
 	
 	node->pos[COORD_X] += deltax;
 	node->pos[COORD_Y] += deltay;
-	OListNode *prevnode[COORD_NUM] = {0};
 	prevnode[COORD_X] = OList_find_place(list, node, COORD_X, deltax);
 	prevnode[COORD_Y] = OList_find_place(list, node, COORD_Y, deltay);
 	OList_move_helper(list, node, prevnode, COORD_X);
@@ -309,9 +306,10 @@ static inline void OList_move_helper(OList *list, OListNode *node, OListNode *pr
 
 OListNode *OList_find_place(OList *list, OListNode *node, int coord, double delta)
 {
+	OListNode *cur = node;
+	
 	check(coord == COORD_X || coord == COORD_Y, "Search direction must be x(0) or y(1).");
 
-	OListNode *cur = node;
 	if(delta > 0)
 	{
 		for(cur = node; cur != NULL; cur = cur->next[coord])

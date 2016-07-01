@@ -1,20 +1,23 @@
 #include "minunit.h"
 #include <olist.h>
 #include <assert.h>
+#include <set>
+
+using std::set;
 
 static OList *list = NULL;
-char *test1 = "test1 data";
-char *test2 = "test2 data";
-char *test3 = "test3 data";
-char *test4 = "test4 data";
-char *test5 = "test5 data";
+const char *test1 = "test1 data";
+const char *test2 = "test2 data";
+const char *test3 = "test3 data";
+const char *test4 = "test4 data";
+const char *test5 = "test5 data";
 OListNode *node1 = NULL;
 OListNode *node2 = NULL;
 OListNode *node3 = NULL;
 OListNode *node4 = NULL;
 OListNode *node5 = NULL;
 
-char *test_create()
+const char *test_create()
 {
 	list = OList_create();
 	mu_assert(list != NULL, "Failed to create list.");
@@ -23,7 +26,7 @@ char *test_create()
 	return NULL;
 }
 
-char *test_destroy()
+const char *test_destroy()
 {
 	OList_clear_destroy(list);
 
@@ -31,33 +34,33 @@ char *test_destroy()
 	return NULL;
 }
 
-char *test_insert()
+const char *test_insert()
 {
-	node1 = malloc(sizeof(OListNode));
+	node1 = (OListNode *)malloc(sizeof(OListNode));
 	node1->pos[COORD_X] = 0.0;
 	node1->pos[COORD_Y] = 0.0;
 	node1->value = strdup(test1);
 	node1->next[COORD_X] = node1->prev[COORD_X] = node1->next[COORD_Y] = node1->prev[COORD_Y] = NULL;
 
-	node2 = malloc(sizeof(OListNode));
+	node2 = (OListNode *)malloc(sizeof(OListNode));
 	node2->pos[COORD_X] = 1.0;
 	node2->pos[COORD_Y] = 1.0;
 	node2->value = strdup(test2);
 	node2->next[COORD_X] = node2->prev[COORD_X] = node2->next[COORD_Y] = node2->prev[COORD_Y] = NULL;
 	
-	node3 = malloc(sizeof(OListNode));
+	node3 = (OListNode *)malloc(sizeof(OListNode));
 	node3->pos[COORD_X] = -1.0;
 	node3->pos[COORD_Y] = 2.0;
 	node3->value = strdup(test3);
 	node3->next[COORD_X] = node3->prev[COORD_X] = node3->next[COORD_Y] = node3->prev[COORD_Y] = NULL;
 	
-	node4 = malloc(sizeof(OListNode));
+	node4 = (OListNode *)malloc(sizeof(OListNode));
 	node4->pos[COORD_X] = 3.0;
 	node4->pos[COORD_Y] = -1.0;
 	node4->value = strdup(test4);
 	node4->next[COORD_X] = node4->prev[COORD_X] = node4->next[COORD_Y] = node4->prev[COORD_Y] = NULL;
 	
-	node5 = malloc(sizeof(OListNode));
+	node5 = (OListNode *)malloc(sizeof(OListNode));
 	node5->pos[COORD_X] = -5.0;
 	node5->pos[COORD_Y] = -5.0;
 	node5->value = strdup(test5);
@@ -103,7 +106,7 @@ char *test_insert()
 	return NULL;
 }
 
-char *test_remove()
+const char *test_remove()
 {
 	OList_remove(list, node1);
 	node1 = NULL;
@@ -149,30 +152,30 @@ char *test_remove()
 	return NULL;
 }
 
-char *test_roi()
+const char *test_roi()
 {
 	test_insert();
-	OListNode *roi[MAX_ROI_NUM] = {0};
-	OList_roi(list, node1, 1.5, 1.5, roi);
-	mu_assert(OList_has_add_to_roi(roi, MAX_ROI_NUM, node1), "node1 should be added to the roi of node1");
-	mu_assert(OList_has_add_to_roi(roi, MAX_ROI_NUM, node2), "node2 should be added to the roi of node1");
-	mu_assert(!OList_has_add_to_roi(roi, MAX_ROI_NUM, node3), "node3 should not be added to the roi of node1");
-	mu_assert(!OList_has_add_to_roi(roi, MAX_ROI_NUM, node4), "node4 should not be added to the roi of node1");
-	mu_assert(!OList_has_add_to_roi(roi, MAX_ROI_NUM, node5), "node5 should not be added to the roi of node1");
+	std::set<OListNode*> roi1;
+	OList_roi(list, node1, 1.5, 1.5, roi1);
+	mu_assert(OList_has_add_to_roi(roi1, node1), "node1 should be added to the roi of node1");
+	mu_assert(OList_has_add_to_roi(roi1, node2), "node2 should be added to the roi of node1");
+	mu_assert(!OList_has_add_to_roi(roi1, node3), "node3 should not be added to the roi of node1");
+	mu_assert(!OList_has_add_to_roi(roi1, node4), "node4 should not be added to the roi of node1");
+	mu_assert(!OList_has_add_to_roi(roi1, node5), "node5 should not be added to the roi of node1");
 	
-	OListNode *roi2[MAX_ROI_NUM] = {0};
+	std::set<OListNode*> roi2;
 	OList_roi(list, node5, 7, 6, roi2);
-	mu_assert(OList_has_add_to_roi(roi2, MAX_ROI_NUM, node1), "node1 should be added to the roi of node5");
-	mu_assert(OList_has_add_to_roi(roi2, MAX_ROI_NUM, node2), "node2 should be added to the roi of node5");
-	mu_assert(!OList_has_add_to_roi(roi2, MAX_ROI_NUM, node3), "node3 should not be added to the roi of node5");
-	mu_assert(!OList_has_add_to_roi(roi2, MAX_ROI_NUM, node4), "node4 should not be added to the roi of node5");
-	mu_assert(OList_has_add_to_roi(roi2, MAX_ROI_NUM, node5), "node5 should be added to the roi of node5");
+	mu_assert(OList_has_add_to_roi(roi2, node1), "node1 should be added to the roi of node5");
+	mu_assert(OList_has_add_to_roi(roi2, node2), "node2 should be added to the roi of node5");
+	mu_assert(!OList_has_add_to_roi(roi2, node3), "node3 should not be added to the roi of node5");
+	mu_assert(!OList_has_add_to_roi(roi2, node4), "node4 should not be added to the roi of node5");
+	mu_assert(OList_has_add_to_roi(roi2, node5), "node5 should be added to the roi of node5");
 	
 	log_info("Passed test roi.");
 	return NULL;
 }
 
-char *test_move()
+const char *test_move()
 {
 	log_info("Move node1.");
 	OList_move(list, node1, -6.0, 0.0);
@@ -217,7 +220,7 @@ char *test_move()
 	return NULL;
 }
 
-char *all_tests()
+const char *all_tests()
 {
 	mu_suite_start();
 

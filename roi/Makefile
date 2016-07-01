@@ -1,12 +1,13 @@
-CFLAGS=-g -O2 -Wall -Wextra -Isrc -rdynamic -DNDEBUG $(OPTFLAGS)
+CC=g++
+CPPFLAGS=-g -O2 -Wall -Wextra -Isrc -rdynamic -DNDEBUG $(OPTFLAGS)
 LDLIBS=-ldl $(OPTLIBS)
 PREFIX?=/usr/local
 
-SOURCES=$(wildcard src/**/*.c src/*.c)
-OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
+SOURCES=$(wildcard src/**/*.cpp src/*.cpp)
+OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
 
-TEST_SRC=$(wildcard tests/*_tests.c)
-TESTS=$(patsubst %.c,%,$(TEST_SRC))
+TEST_SRC=$(wildcard tests/*_tests.cpp)
+TESTS=$(patsubst %.cpp,%,$(TEST_SRC))
 
 TARGET=build/libroi.a
 SO_TARGET=$(patsubst %.a,%.so,$(TARGET))
@@ -16,7 +17,7 @@ all: $(TARGET) $(SO_TARGET) tests
 dev: CFLAGS=-g -Wall -Isrc -Wall -Wextra $(OPTFLAGS)
 dev: all
 
-$(TARGET): CFLAGS += -fPIC
+$(TARGET): CPPFLAGS += -fPIC
 $(TARGET): build $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
 	ranlib $@

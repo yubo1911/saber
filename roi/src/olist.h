@@ -2,6 +2,9 @@
 #define olist_h
 
 #include <stdlib.h>
+#include <set>
+
+using std::set;
 
 struct OListNode;
 #define MAX_ROI_NUM 30
@@ -37,9 +40,9 @@ void OList_clear_destroy(OList *list);
 void OList_insert(OList *list, OListNode *node);
 void *OList_remove(OList *list, OListNode *node);
 void OList_remove_without_free(OList *list, OListNode *node, int removex, int removey);
-void OList_roi(OList *list, OListNode *node, double rangex, double rangey, OListNode *roi[]);
+void OList_roi(OList *list, OListNode *node, double rangex, double rangey, std::set<OListNode*> &roi);
 int OList_out_range(OListNode *from, OListNode *to, double rangex, double rangey, int *stopx, int *stopy);
-int OList_has_add_to_roi(OListNode *roi[], int index, OListNode* node);
+int OList_has_add_to_roi(std::set<OListNode*> &roi, OListNode* node);
 void OList_tranvers(OList *list);
 void OList_move(OList *list, OListNode *node, double deltax, double deltay);
 OListNode *OList_find_place(OList *list, OListNode *node, int xy, double delta);

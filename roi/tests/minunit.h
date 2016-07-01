@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include "dbg.h"
 
-#define mu_suite_start() char *message = NULL
+#define mu_suite_start() const char *message = NULL
 
 #define mu_assert(test, message) if (!(test)) {log_err(message); return message;}
 #define mu_run_test(test) debug("\n--------%s", ""#test); \
@@ -17,7 +17,7 @@
 	argc = 1;\
 	debug("------RUNNING: %s", argv[0]);\
 	printf("------\nRUNNING: %s\n", argv[0]);\
-	char *result = name();\
+	const char *result = name();\
 	if (result != 0) \
 	{\
 		printf("FAILED: %s\n", result);\
