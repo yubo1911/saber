@@ -3,25 +3,26 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <iterator>
 #include <uv.h>
 #include <olist.h>
 #include <proto.h>
 #include <entity.h>
 
-using std::cerr, std::endl, std::map, std::set;
-
 #define DEFAULT_PORT 7000
 #define BACKLOG 128
+#define ROI_RANGE 20
 uv_loop_t *loop;
 struct sockaddr_in addr;
 static OList *list = NULL;
 static std::map<unsigned int, OListNode *> entity_map;
+static int max_entity_id = 0;
 
 
 void insert_new_entity(char *data, int nread, uv_stream_t *client);
 void move_entity(char *data, int nread, uv_stream_t *client);
 void remove_entity(char *data, int nread, uv_stream_t *client);
-void send_roi(uv_stream_t *client, unsigned int entity_id);
+void update_roi(uv_stream_t *client, unsigned int entity_id);
 void echo_write(uv_write_t *req, int status);
 
 void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *client)
@@ -44,14 +45,15 @@ void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *client)
 
 void insert_new_entity(char *data, int nread, uv_stream_t *client)
 {
-	unsigned int entity_id = (unsigned int)data[1];
+	unsigned int entity_id = max_entity_id;
 	char buf[256];
 	sprintf(buf, "entity with id %d", entity_id);
-	int x = (*(int*)&data[2]);
-	int y = (*(int*)&data[6]);
+	int x = (*(int*)&data[1]);
+	int y = (*(int*)&data[5]);
 	Entity *ent = (Entity*)malloc(sizeof(Entity));
 	ent->client = client;
 	ent->repr = strdup(buf);
+	ent->id = entity_id;
 	
 	OListNode *node = (OListNode*)malloc(sizeof(OListNode));
 	node->pos[COORD_X] = x;
@@ -60,6 +62,8 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	node->next[COORD_X] = node->prev[COORD_X] = node->next[COORD_Y] = node->prev[COORD_Y] = NULL;
 	OList_insert(list, node);
 	entity_map[entity_id] = node;
+	update_roi(client, entity_id);
+	max_entity_id++;
 }
 
 void move_entity(char *data, int nread, uv_stream_t *client)
@@ -71,6 +75,7 @@ void move_entity(char *data, int nread, uv_stream_t *client)
 	if(map.count(entity_id) <= 0) return;
 	OListNode *node = map[entity_id];
 	OList_move(list, node, dx, dy);
+	update_roi(client, entity_id);
 }
 
 void remove_entity(char *data, int nread, uv_stream_t *client)
@@ -78,31 +83,94 @@ void remove_entity(char *data, int nread, uv_stream_t *client)
 	unsigned int entity_id = (unsigned int)data[1];
 	if(map.count(entity_id) <= 0) return;
 	OListNode *node = map[entity_id];
+	std::set<OListNode*> roi;
+	OList_roi(list, node, ROI_RANGE, ROI_RANGE, roi);
 	OList_remove(list, node);
 	map.erase(entity_id);
+	
+	for(auto it = roi.begin(); it != roi.end(); it++)
+	{
+		if(entity_map.count(*it) <= 0) continue;
+		uv_stream_t *other_client = entity_map[*it]->value->client;
+		send_roi(CMD_SC_ROI_RM, other_client, *it, {entity_id})
+	}
 }
 
-void send_roi(uv_stream_t *client, unsigned int entity_id)
+void update_roi(uv_stream_t *client, unsigned int entity_id)
 {
 	if(map.count(entity_id) <= 0) return;
 	OListNode *node = map[entity_id];
 	std::set<OListNode*> roi;
-	OList_roi(list, node, 20, 20, roi);
+	OList_roi(list, node, ROI_RANGE, ROI_RANGE, roi);
+	std::set<unsigned int> roi_ent;
+	for(auto it = roi.begin(); it != roi.end(); it++)
+	{
+		roi_ent.insert(it->value->id);
+	}
 
-	char buf[256];
-	buf[0] = CMD_SC_ROI;
-	memcpy(&buf[1], &entity_id, 4);
+	std::set<unsigned int> roi_add;
+	std::set<unsigned int> roi_rm;
+	std::set<unsigned int> roi_mv;
+
+	std::set_difference(roi_ent.begin(), roi.ent.end(), node->value->roi_entities.begin(), node->value->roi_entities.end(),
+			std::inserter(roi_add, roi_add.begin()));
 	
-	size_t offset = 5;
+	std::set_difference(node->value->roi_entities.begin(), node->value->roi_entities.end(), roi_ent.begin(), roi_ent.end(),  
+			std::inserter(roi_rm, roi_rm.begin()));
+	
+	std::set_difference(node->value->roi_entities.begin(), node->value->roi_entities.end(), roi_rm.begin(), roi_rm.end(),  
+			std::inserter(roi_mv, roi_mv.begin()));
+
+	send_roi(CMD_SC_ROI_ADD, client, entity_id, roi_add);
+	send_roi(CMD_SC_ROI_RM, client, entity_id, roi_rm);
+	
+	for(auto it = roi_add.begin(); it != roi_add.end(); it++)
+	{
+		if(entity_map.count(*it) <= 0) continue;
+		uv_stream_t *other_client = entity_map[*it]->value->client;
+		send_roi(CMD_SC_ROI_ADD, other_client, *it, {entity_id})
+	}
+
+	for(auto it = roi_rm.begin(); it != roi_rm.end(); it++)
+	{
+		if(entity_map.count(*it) <= 0) continue;
+		uv_stream_t *other_client = entity_map[*it]->value->client;
+		send_roi(CMD_SC_ROI_RM, other_client, *it, {entity_id})
+	}
+	
+	for(auto it = roi_mv.begin(); it != roi_mv.end(); it++)
+	{
+		if(entity_map.count(*it) <= 0) continue;
+		uv_stream_t *other_client = entity_map[*it]->value->client;
+		send_roi(CMD_SC_ROI_MV, other_client, *it, {entity_id})
+	}
+	
+	node->value->roi_entities = roi;
+}
+
+void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, std::set<unsigned int> &roi)
+{
+	char buf[256];
+	buf[0] = cmd;
+	memcpy(&buf[1], &entity_id, 4);
+
+	int num = roi.size();
+	memcpy(&buf[5], &num, 4);
+	
+	size_t offset = 9;
 	int roi_cnt = 0;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
-		int x = it->pos[COORD_X];
-		int y = it->pos[COORD_Y];
-		memcpy(&buf[offset + roi_cnt * 8], &x, 4);
-		memcpy(&buf[offset + roi_cnt * 8 + 4], &y, 4);
+		if(entity_map.cout(*it) <= 0) continue;
+		OListNode *node = entity_map[*it];
+		unsigned int entid = node->value->id;
+		int x = node->pos[COORD_X];
+		int y = node->pos[COORD_Y];
+		memcpy(&buf[offset + roi_cnt * 12], &entid, 4);
+		memcpy(&buf[offset + roi_cnt * 12 + 4], &x, 4);
+		memcpy(&buf[offset + roi_cnt * 12 + 8], &y, 4);
 		roi_cnt++;
-		if(offset + roi_cnt * 8 > 256 - 8) break;
+		if(offset + roi_cnt * 12 > 256 - 12) break;
 	}
 
 	uv_write_t *req = (uv_write_t*) malloc(sizeof(uv_write_t));
