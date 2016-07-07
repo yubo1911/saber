@@ -3,6 +3,8 @@
 #include <initializer_list>
 #include <array>
 #include <forward_list>
+#include <utility>
+#include <string>
 
 using namespace std;
 
@@ -15,6 +17,17 @@ void print_list(initializer_list<int> il)
 	}
 	cout<<endl;
 }
+
+class TestData
+{
+	public:
+		TestData(string name, int age, double salary): name(name), age(age), salary(salary)
+		{}
+	private:
+		string name;
+		int age;
+		double salary;
+};
 
 int main()
 {
@@ -68,5 +81,34 @@ int main()
 		cout<<*it5_2<<'\t';
 	}
 	cout<<endl;
+
+	cout<<"Test swap:\n";
+	vector<int> c6 = {0, 1, 2, 3, 4};
+	vector<int> c7 = {5, 6, 7, 8, 9};
+	auto it6_1 = c6.begin();
+	auto it7_1 = c7.begin();
+	swap(c6, c7);
+	for(auto it6_2 = c6.begin(); it6_2 != c6.end(); it6_2++)
+		cout<<*it6_2<<'\t';
+	cout<<endl;
 	
+	for(auto it7_2 = c7.begin(); it7_2 != c7.end(); it7_2++)
+		cout<<*it7_2<<'\t';
+	cout<<endl;
+
+	cout<<(it6_1 == c7.begin())<<'\t'<<(it7_1 == c6.begin())<<endl;
+
+	array<int, 5> c8 = {0, 1, 2, 3, 4};
+	array<int, 5> c9 = {5, 6, 7, 8, 9};
+	auto it8_1 = c8.begin();
+	auto it9_1 = c9.begin();
+	swap(c8, c9);
+	cout<<(it8_1 == c8.begin())<<'\t'<<(it9_1 == c9.begin())<<endl;
+	
+	cout<<"Test emplace:\n";
+	vector<TestData> c10;
+	c10.emplace_back("yubo", 26, 100000000000.0);
+	//c10.push_back("laowang", 56, 10.5); // wrong. no 3 params push_back
+	c10.push_back(TestData("laowang", 56, 10.5));
+	cout<<c10.size()<<endl;
 }
