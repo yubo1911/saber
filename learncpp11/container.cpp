@@ -5,6 +5,9 @@
 #include <forward_list>
 #include <utility>
 #include <string>
+#include <map>
+#include <unordered_map>
+#include <tuple>
 
 using namespace std;
 
@@ -111,4 +114,38 @@ int main()
 	//c10.push_back("laowang", 56, 10.5); // wrong. no 3 params push_back
 	c10.push_back(TestData("laowang", 56, 10.5));
 	cout<<c10.size()<<endl;
+
+	cout<<"Test shrink to fit:\n";
+	vector<int> c11;
+	for(int i = 0; i < 24; i++)
+		c11.push_back(i);
+	cout<<c11.size()<<'\t'<<c11.capacity()<<endl;
+	c11.shrink_to_fit();
+	cout<<c11.size()<<'\t'<<c11.capacity()<<endl;
+
+	cout<<"Test unordered container:\n";
+	unordered_map<string, int> c12;
+	map<string, int> c13;
+	string string_keys[5] = {"aaa", "bbb", "ccc", "ddd", "eee"};
+	for(int i = 0; i < 5; i++)
+	{
+		c12[string_keys[i]] = i;
+		c13[string_keys[i]] = i;
+	}
+	cout<<"normal map:\n";
+	for(auto it13 = c13.begin(); it13 != c13.end(); it13++)
+		cout<<it13->first<<':'<<it13->second<<'\t';
+	cout<<endl;
+	cout<<"unordered map:\n";
+	for(auto it12 = c12.begin(); it12 != c12.end(); it12++)
+		cout<<it12->first<<':'<<it12->second<<'\t';
+	cout<<endl;
+
+	cout<<"Test tuple:\n";
+	//tuple<int, string, vector<int>> c14 = {1, "tuple", {0, 1, 2, 3, 4}}; // wrong. must explicit initialize
+	tuple<int, string, vector<int>> c14{1, "tuple", {0, 1, 2, 3, 4}};
+	get<0>(c14) = 2;
+	typedef decltype(c14) ctype;
+	size_t sz = tuple_size<ctype>::value;
+	cout<<get<0>(c14)<<'\t'<<get<1>(c14)<<'\t'<<get<2>(c14)[0]<<'\t'<<sz<<endl;
 }
