@@ -9,6 +9,32 @@ uv_loop_t *loop;
 ClientEntity *avatar;
 std::map<unsigned int, ClientEntity*> roi_entities;
 
+void get_msg(uv_handle_t *handle);
+
+void get_msg(uv_handle_t *handle)
+{
+	char *data = new char[1024];
+	uv_stream_t **stream = nullptr;
+	unsigned int len = 0;
+	get_one_cmd_from_cache_msg(data, len, stream);
+	if(len > 0 && stream != nullptr)
+	{
+		dispatch_cmd(data, len, *stream);
+	}
+}
+
+void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *stream)
+{
+	// TODO: parse the msg with proto
+	switch(data[0])
+	{
+		case CMD_SC_ROI_ADD:
+			break;
+		default:
+			break;
+	}
+}
+
 void alloc_buf(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 {
 	buf->base = (char*)malloc(suggested_size);
@@ -27,18 +53,62 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
 	}
 	else if(nread > 0)
 	{
-		// TODO handle server to client proto and update client entities
+		push_data_to_cache_msg(buf->base, nread, stream);
 	}
 
 	if(buf->base) free(buf->base);
-	my_write_helper(stream);
 }
 
 void my_write_helper(uv_stream_t *stream)
 {
-	// TODO offer some options to choice to send proto to server
-	
+	// TODO should merge this block method to uv loop every n secs.
+	std::cout<<std::endl;
+	std::cout<<"1.Add a new entity."<<std::endl;
+	std::cout<<"2.Move entity."<<std::endl;
+	std::cout<<"3.Remove entity."<<std::endl;
+	std::cout<<"4.Print entity's roi."<<std::endl;
+	int choice = 0;
+	std::cin>>choice;
+	switch(choice)
+	{
+		case 1:
+			std::cout<<"Please enter x and y:"<<std::endl;
+			int x, y;
+			std::cin>>x>>y;
+			add_entity_helper(stream, x, y);
+			break;
+		case 2:
+			std::cout<<"Please enter dx and dy:"<<std:endl;
+			int dx, dy;
+			std::cin>>dx>>dy;
+			move_entity_helper(stream, dx, dy);
+			break;
+		case 3:
+			remove_entity_helper(stream);
+			break;
+		case 4:
+			print_entity_roi_helper();
+			break;
+		default:
+			std::cout<<"What do you mean?"<<std::endl;
+			my_write_helper(stream);
+			break;
+	}
 }
+
+void add_entity_helper(uv_stream_t *stream, int x, int y)
+{
+	char buf[64] = {0};
+}
+
+void move_entity_helper(uv_stream_t *stream, int dx, int dy)
+{}
+
+void remove_entity_helper(uv_stream_t *stream)
+{}
+
+void print_entity_roi_helper()
+{}
 
 void on_connect(uv_connect_t *req, int status)
 {
@@ -59,6 +129,10 @@ int main()
 	uv_tcp_t *socket = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
 
 	uv_tcp_init(loop, socket);
+	
+	uv_idle_t idler;
+	uv_idle_init(loop, &idler);
+	uv_idle_start(&idler, get_msg);
 
 	uv_connect_t *connect = (uv_connect_t*)malloc(sizeof(uv_connect_t));
 

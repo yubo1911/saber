@@ -24,6 +24,19 @@ void move_entity(char *data, int nread, uv_stream_t *client);
 void remove_entity(char *data, int nread, uv_stream_t *client);
 void update_roi(uv_stream_t *client, unsigned int entity_id);
 void echo_write(uv_write_t *req, int status);
+void get_msg(uv_handle_t *handle);
+
+void get_msg(uv_handle_t *handle)
+{
+	char *data = new char[1024];
+	uv_stream_t **client = nullptr;
+	unsigned int len = 0;
+	get_one_cmd_from_cache_msg(data, len, client);
+	if(len > 0 && client != nullptr)
+	{
+		dispatch_cmd(data, len, *client);
+	}
+}
 
 void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *client)
 {
@@ -174,7 +187,7 @@ void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, st
 	}
 
 	uv_write_t *req = (uv_write_t*) malloc(sizeof(uv_write_t));
-	uv_buf_t wrbuf = uv_buf_init(buf, offset + roi_cnt * 8);
+	uv_buf_t wrbuf = uv_buf_init(buf, offset + roi_cnt * 12);
 	uv_write(req, client, &wrbuf, 1, echo_write);
 	return;
 }
@@ -203,7 +216,7 @@ void read_cmd(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 	}
 	else if(nread > 0)
 	{
-		dispatch_cmd(buf->base, nread, client);
+		push_data_to_cache_msg(buf->base, nread, client);
 	}
 
 	if(buf->base) free(buf->base);
@@ -233,6 +246,10 @@ int main()
 {
 	loop = uv_default_loop();
 	list = OList_create();
+
+	uv_idle_t idler;
+	uv_idle_init(loop, &idler);
+	uv_idle_start(&idler, get_msg);
 
 	uv_tcp_t server;
 	uv_tcp_init(loop, &server);
