@@ -67,6 +67,9 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	ent->client = client;
 	ent->repr = strdup(buf);
 	ent->id = entity_id;
+
+	// TODO ack the new entity
+	ack_new_entity(client, entity_id, x, y);
 	
 	OListNode *node = (OListNode*)malloc(sizeof(OListNode));
 	node->pos[COORD_X] = x;
@@ -77,6 +80,23 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	entity_map[entity_id] = node;
 	update_roi(client, entity_id);
 	max_entity_id++;
+}
+
+void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
+{
+	size_t int_size = sizeof(int);
+	char buf[256] = {0};
+	buf[0] = PROTO_START;
+	buf[1 + int_size] = CMD_SC_NEW;
+	memcpy(&buf[1 + int_size * 2], &entity_id, int_size);
+	memcpy(&buf[1 + int_size * 3], &x, int_size);
+	memcpy(&buf[1 + int_size * 4], &y, int_size);
+	int len = 1 + int_size * 5;
+	memcpy(&buf[1], &len, int_size);
+	
+	uv_write_t *req = (uv_write_t*) malloc(sizeof(uv_write_t));
+	uv_buf_t wrbuf = uv_buf_init(buf, len);
+	uv_write(req, client, &wrbuf, 1, echo_write);
 }
 
 void move_entity(char *data, int nread, uv_stream_t *client)
@@ -163,14 +183,16 @@ void update_roi(uv_stream_t *client, unsigned int entity_id)
 
 void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, std::set<unsigned int> &roi)
 {
+	size_t int_size = sizeof(int);
 	char buf[256];
-	buf[0] = cmd;
-	memcpy(&buf[1], &entity_id, 4);
+	buf[0] = PROTO_START;
+	buf[1 + int_size] = cmd;
+	memcpy(&buf[1 + int_size + 1], &entity_id, int_size);
 
 	int num = roi.size();
-	memcpy(&buf[5], &num, 4);
+	memcpy(&buf[1 + int_size + 1 + int_size], &num, int_size);
 	
-	size_t offset = 9;
+	size_t offset = 1 + int_size + 1 + int_size * 2;
 	int roi_cnt = 0;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
@@ -179,15 +201,17 @@ void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, st
 		unsigned int entid = node->value->id;
 		int x = node->pos[COORD_X];
 		int y = node->pos[COORD_Y];
-		memcpy(&buf[offset + roi_cnt * 12], &entid, 4);
-		memcpy(&buf[offset + roi_cnt * 12 + 4], &x, 4);
-		memcpy(&buf[offset + roi_cnt * 12 + 8], &y, 4);
+		memcpy(&buf[offset + roi_cnt * 3 * int_size], &entid, int_size);
+		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size], &x, int_size);
+		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size], &y, int_size);
 		roi_cnt++;
-		if(offset + roi_cnt * 12 > 256 - 12) break;
+		if(offset + roi_cnt * 3 * int_size > 256 - 3 * int_size) break;
 	}
+	int len = offset + roi_cnt * 3 * int_size;
+	memcpy(&buf[1], &len, int_size);
 
 	uv_write_t *req = (uv_write_t*) malloc(sizeof(uv_write_t));
-	uv_buf_t wrbuf = uv_buf_init(buf, offset + roi_cnt * 12);
+	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write(req, client, &wrbuf, 1, echo_write);
 	return;
 }
@@ -196,7 +220,7 @@ void echo_write(uv_write_t *req, int status)
 {
 	if (status)
 	{
-		fprintf(stderr, "Write error %s.\n", uv_strerror(status));
+		std::cerr<<"Write error "<<uv_strerror(status)<<std::endl;
 	}
 	free(req);
 }

@@ -5,11 +5,21 @@
 
 #define DEFAULT_PORT 7000
 
-uv_loop_t *loop;
-ClientEntity *avatar;
+uv_loop_t *loop = NULL;
+ClientEntity *avatar = NULL;
 std::map<unsigned int, ClientEntity*> roi_entities;
 
 void get_msg(uv_handle_t *handle);
+
+void on_write(uv_write_t *req, int status)
+{
+	if(status)
+	{
+		std::cerr<<"Write error: "<<uv_strerror(status)<<std::endl;
+	}
+	std::cout<<"Wrote."<<std::endl;
+	free(req);
+}
 
 void get_msg(uv_handle_t *handle)
 {
@@ -25,14 +35,128 @@ void get_msg(uv_handle_t *handle)
 
 void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *stream)
 {
-	// TODO: parse the msg with proto
 	switch(data[0])
 	{
+		case CMD_SC_NEW:
+			handle_add_entity(data, nread, stream);
+			break;
 		case CMD_SC_ROI_ADD:
+			handle_add_roi_entity(data, nread, stream);
+			break;
+		case CMD_SC_ROI_MV:
+			handle_mv_roi_entity(data, nread, stream);
+			break;
+		case CMD_SC_ROI_RM:
+			handle_rm_roi_entity(data, nread, stream);
 			break;
 		default:
 			break;
 	}
+}
+
+void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
+{
+	size_t int_size = sizeof(int);
+	unsigned int id = *((unsigned int *)&data[1]);
+	int x = *((unsigned int *)&data[1 + int_size]);
+	int y = *((unsigned int *)&data[1 + int_size * 2]);
+	if(avatar)
+	{
+		std::cerr<<"Avatar exist already."<<std::endl;
+		my_write_helper(stream);
+		return;
+	}
+
+	avatar = (ClientEntity*)malloc(sizeof(ClientEntity));
+	avatar->id = id;
+	avatar->pos[COORD_X] = x;
+	avatar->pos[COORD_Y] = y;
+	my_write_helper(stream);
+}
+
+void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
+{
+	size_t int_size = sizeof(int);
+	unsigned int id = *((unsigned int *)&data[1]);
+	if(!avatar) 
+	{
+		std::cerr<<"No avatar yet."<<std::endl;
+		my_write_helper(stream);
+		return;
+	}
+	unsigned int num = *((unsigned int *)&data[1 + int_size]);
+	int offset = 1 + int_size * 2;
+	for(int i = 0; i < num; i++)
+	{
+		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
+		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
+		int y =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size * 2]); 
+		ClientEntity *ent = (ClientEntity*)malloc(sizeof(ClientEntity)); 
+		ent->id = tgt_id;
+		ent->pos[COORD_X] = x;
+		ent->pos[COORD_Y] = y;
+		roi_entities[tgt_id] = ent;
+	}
+	my_write_helper(stream);
+}
+
+void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
+{
+	size_t int_size = sizeof(int);
+	unsigned int id = *((unsigned int *)&data[1]);
+	if(!avatar) 
+	{
+		std::cerr<<"No avatar yet."<<std::endl;
+		my_write_helper(stream);
+		return;
+	}
+	unsigned int num = *((unsigned int *)&data[1 + int_size]);
+	int offset = 1 + int_size * 2;
+	for(int i = 0; i < num; i++)
+	{
+		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
+		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
+		int y =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size * 2]); 
+		if(roi_entities.count(tgt_id) <= 0)
+		{
+			std::cerr<<"No entity yet: "<<tgt_id<<std::endl;
+			continue;
+		}
+		ClientEntity *ent = roi_entities[tgt_id];
+		ent->id = tgt_id;
+		ent->pos[COORD_X] = x;
+		ent->pos[COORD_Y] = y;
+	}
+	my_write_helper(stream);
+}
+
+void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
+{
+	size_t int_size = sizeof(int);
+	unsigned int id = *((unsigned int *)&data[1]);
+	if(!avatar) 
+	{
+		std::cerr<<"No avatar yet."<<std::endl;
+		my_write_helper(stream);
+		return;
+	}
+	unsigned int num = *((unsigned int *)&data[1 + int_size]);
+	int offset = 1 + int_size * 2;
+	for(int i = 0; i < num; i++)
+	{
+		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
+		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
+		int y =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size * 2]); 
+		if(roi_entities.count(tgt_id) <= 0)
+		{
+			std::cerr<<"No entity yet: "<<tgt_id<<std::endl;
+			continue;
+		}
+		ClientEntity *ent = roi_entities[tgt_id];
+		roi_entities.erase(ent);
+		free(ent);
+	}
+	my_write_helper(stream);
 }
 
 void alloc_buf(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
@@ -61,7 +185,6 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
 
 void my_write_helper(uv_stream_t *stream)
 {
-	// TODO should merge this block method to uv loop every n secs.
 	std::cout<<std::endl;
 	std::cout<<"1.Add a new entity."<<std::endl;
 	std::cout<<"2.Move entity."<<std::endl;
@@ -98,17 +221,61 @@ void my_write_helper(uv_stream_t *stream)
 
 void add_entity_helper(uv_stream_t *stream, int x, int y)
 {
+	size_t int_size = sizeof(int);
 	char buf[64] = {0};
+	buf[0] = PROTO_START;
+	buf[1 + int_size] = CMD_NEW;
+	memcpy(&buf[2 + int_size], &x, int_size);
+	memcpy(&buf[2 + int_size * 2], &y, int_size);
+	int len = strlen(buf);
+	memcpy(buf[1], &len, int_size);
+	uv_buf_t wrbuf = uv_buf_init(buf, len);
+	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
+	uv_write(wreq, stream, &wrbuf, 1, on_write);
+	return;
 }
 
 void move_entity_helper(uv_stream_t *stream, int dx, int dy)
-{}
+{
+	size_t int_size = sizeof(int);
+	char buf[64] = {0};
+	buf[0] = PROTO_START;
+	buf[1 + int_size] = CMD_MV;
+	memcpy(&buf[1 + int_size + 1], &(avatar->id), int_size);
+	memcpy(&buf[1 + int_size + 1 + int_size], &dx, int_size);
+	memcpy(&buf[1 + int_size + 1 + int_size * 2], &dy, int_size);
+	int len = strlen(buf);
+	memcpy(buf[1], &len, int_size);
+	uv_buf_t wrbuf = uv_buf_init(buf, len);
+	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
+	uv_write(wreq, stream, &wrbuf, 1, on_write);
+	return;
+}
 
 void remove_entity_helper(uv_stream_t *stream)
-{}
+{
+	size_t int_size = sizeof(int);
+	char buf[64] = {0};
+	buf[0] = PROTO_START;
+	buf[1 + int_size] = CMD_GONE;
+	memcpy(&buf[1 + int_size + 1], &(avatar->id), int_size);
+	int len = strlen(buf);
+	memcpy(buf[1], &len, int_size);
+	uv_buf_t wrbuf = uv_buf_init(buf, len);
+	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
+	uv_write(wreq, stream, &wrbuf, 1, on_write);
+	return;
+}
 
 void print_entity_roi_helper()
-{}
+{
+	std::cout<<"Entity in roi:\n";
+	for(auto it = roi_entities.begin(); it != roi_entities.end(); it++)
+	{
+		std::cout<<it->first<<'\t'<<'('<<it->second->pos[COORD_X]<<','<<it->second->pos[COORD_Y]<<")\n";
+	}
+	std::cout<<std::endl;
+}
 
 void on_connect(uv_connect_t *req, int status)
 {
