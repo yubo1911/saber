@@ -3,6 +3,8 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <algorithm>
+#include <cstring>
 #include <iterator>
 #include <uv.h>
 #include <olist.h>
@@ -24,9 +26,12 @@ void move_entity(char *data, int nread, uv_stream_t *client);
 void remove_entity(char *data, int nread, uv_stream_t *client);
 void update_roi(uv_stream_t *client, unsigned int entity_id);
 void echo_write(uv_write_t *req, int status);
-void get_msg(uv_handle_t *handle);
+void get_msg(uv_idle_t *handle);
+void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *client);
+void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y);
+void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, std::set<unsigned int> &roi);
 
-void get_msg(uv_handle_t *handle)
+void get_msg(uv_idle_t *handle)
 {
 	char *data = new char[1024];
 	uv_stream_t **client = nullptr;
@@ -68,7 +73,6 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	ent->repr = strdup(buf);
 	ent->id = entity_id;
 
-	// TODO ack the new entity
 	ack_new_entity(client, entity_id, x, y);
 	
 	OListNode *node = (OListNode*)malloc(sizeof(OListNode));
@@ -105,8 +109,8 @@ void move_entity(char *data, int nread, uv_stream_t *client)
 	int dx = (*(int*)&data[2]);
 	int dy = (*(int*)&data[6]);
 	
-	if(map.count(entity_id) <= 0) return;
-	OListNode *node = map[entity_id];
+	if(entity_map.count(entity_id) <= 0) return;
+	OListNode *node = entity_map[entity_id];
 	OList_move(list, node, dx, dy);
 	update_roi(client, entity_id);
 }
@@ -114,71 +118,76 @@ void move_entity(char *data, int nread, uv_stream_t *client)
 void remove_entity(char *data, int nread, uv_stream_t *client)
 {
 	unsigned int entity_id = (unsigned int)data[1];
-	if(map.count(entity_id) <= 0) return;
-	OListNode *node = map[entity_id];
+	if(entity_map.count(entity_id) <= 0) return;
+	OListNode *node = entity_map[entity_id];
 	std::set<OListNode*> roi;
 	OList_roi(list, node, ROI_RANGE, ROI_RANGE, roi);
 	OList_remove(list, node);
-	map.erase(entity_id);
+	entity_map.erase(entity_id);
 	
+	std::set<unsigned int> entity_id_set{entity_id};
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
-		if(entity_map.count(*it) <= 0) continue;
-		uv_stream_t *other_client = entity_map[*it]->value->client;
-		send_roi(CMD_SC_ROI_RM, other_client, *it, {entity_id})
+		OListNode *node = *it;
+		unsigned int roi_ent_id = ((Entity *)node->value)->id;
+		if(entity_map.count(roi_ent_id) <= 0) continue;
+		uv_stream_t *other_client = ((Entity *)entity_map[roi_ent_id]->value)->client;
+		send_roi(CMD_SC_ROI_RM, other_client, roi_ent_id, entity_id_set);
 	}
 }
 
 void update_roi(uv_stream_t *client, unsigned int entity_id)
 {
-	if(map.count(entity_id) <= 0) return;
-	OListNode *node = map[entity_id];
+	if(entity_map.count(entity_id) <= 0) return;
+	OListNode *node = entity_map[entity_id];
 	std::set<OListNode*> roi;
 	OList_roi(list, node, ROI_RANGE, ROI_RANGE, roi);
 	std::set<unsigned int> roi_ent;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
-		roi_ent.insert(it->value->id);
+		OListNode *node = *it;
+		roi_ent.insert(((Entity *)(node->value))->id);
 	}
 
 	std::set<unsigned int> roi_add;
 	std::set<unsigned int> roi_rm;
 	std::set<unsigned int> roi_mv;
 
-	std::set_difference(roi_ent.begin(), roi.ent.end(), node->value->roi_entities.begin(), node->value->roi_entities.end(),
+	std::set_difference(roi_ent.begin(), roi_ent.end(), ((Entity *)node->value)->roi_entities.begin(), ((Entity *)node->value)->roi_entities.end(),
 			std::inserter(roi_add, roi_add.begin()));
 	
-	std::set_difference(node->value->roi_entities.begin(), node->value->roi_entities.end(), roi_ent.begin(), roi_ent.end(),  
+	std::set_difference(((Entity *)node->value)->roi_entities.begin(), ((Entity *)node->value)->roi_entities.end(), roi_ent.begin(), roi_ent.end(),  
 			std::inserter(roi_rm, roi_rm.begin()));
 	
-	std::set_difference(node->value->roi_entities.begin(), node->value->roi_entities.end(), roi_rm.begin(), roi_rm.end(),  
+	std::set_difference(((Entity *)node->value)->roi_entities.begin(), ((Entity *)node->value)->roi_entities.end(), roi_rm.begin(), roi_rm.end(),  
 			std::inserter(roi_mv, roi_mv.begin()));
 
 	send_roi(CMD_SC_ROI_ADD, client, entity_id, roi_add);
 	send_roi(CMD_SC_ROI_RM, client, entity_id, roi_rm);
 	
+	std::set<unsigned int> entity_id_set{entity_id};
 	for(auto it = roi_add.begin(); it != roi_add.end(); it++)
 	{
 		if(entity_map.count(*it) <= 0) continue;
-		uv_stream_t *other_client = entity_map[*it]->value->client;
-		send_roi(CMD_SC_ROI_ADD, other_client, *it, {entity_id})
+		uv_stream_t *other_client = ((Entity *)entity_map[*it]->value)->client;
+		send_roi(CMD_SC_ROI_ADD, other_client, *it, entity_id_set);
 	}
 
 	for(auto it = roi_rm.begin(); it != roi_rm.end(); it++)
 	{
 		if(entity_map.count(*it) <= 0) continue;
-		uv_stream_t *other_client = entity_map[*it]->value->client;
-		send_roi(CMD_SC_ROI_RM, other_client, *it, {entity_id})
+		uv_stream_t *other_client = ((Entity *)entity_map[*it]->value)->client;
+		send_roi(CMD_SC_ROI_RM, other_client, *it, entity_id_set);
 	}
 	
 	for(auto it = roi_mv.begin(); it != roi_mv.end(); it++)
 	{
 		if(entity_map.count(*it) <= 0) continue;
-		uv_stream_t *other_client = entity_map[*it]->value->client;
-		send_roi(CMD_SC_ROI_MV, other_client, *it, {entity_id})
+		uv_stream_t *other_client = ((Entity *)entity_map[*it]->value)->client;
+		send_roi(CMD_SC_ROI_MV, other_client, *it, entity_id_set);
 	}
 	
-	node->value->roi_entities = roi;
+	((Entity *)node->value)->roi_entities = roi_ent;
 }
 
 void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, std::set<unsigned int> &roi)
@@ -196,9 +205,9 @@ void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, st
 	int roi_cnt = 0;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
-		if(entity_map.cout(*it) <= 0) continue;
+		if(entity_map.count(*it) <= 0) continue;
 		OListNode *node = entity_map[*it];
-		unsigned int entid = node->value->id;
+		unsigned int entid = ((Entity *)node->value)->id;
 		int x = node->pos[COORD_X];
 		int y = node->pos[COORD_Y];
 		memcpy(&buf[offset + roi_cnt * 3 * int_size], &entid, int_size);
@@ -254,7 +263,7 @@ void on_new_connection(uv_stream_t *server, int status)
 		return;
 	}
 	std::cout<<"new connection is coming...\n";
-	uv_tcp_t &client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
 	uv_tcp_init(loop, client);
 	if(uv_accept(server, (uv_stream_t*)client) == 0)
 	{

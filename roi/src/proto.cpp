@@ -5,6 +5,7 @@
 #include <proto.h>
 
 std::map<uv_stream_t*, std::deque<char>* > cache_msg;
+void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client);
 
 void push_data_to_cache_msg(char *data, int nread, uv_stream_t *client)
 {
@@ -44,7 +45,7 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client)
 		len = 0;
 		return;
 	}
-	if(cache_msg[client]->at(0) != 0xff)
+	if(cache_msg[client]->at(0) != (char)0xff)
 	{
 		std::cerr<<"Wrong msg format"<<std::endl;
 		exit(-1);

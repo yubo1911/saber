@@ -1,6 +1,9 @@
 #include <stdlib.h>
+#include <iostream>
 #include <uv.h>
+#include <cstring>
 #include <entity.h>
+#include <proto.h>
 #include <map>
 
 #define DEFAULT_PORT 7000
@@ -9,7 +12,21 @@ uv_loop_t *loop = NULL;
 ClientEntity *avatar = NULL;
 std::map<unsigned int, ClientEntity*> roi_entities;
 
-void get_msg(uv_handle_t *handle);
+void on_write(uv_write_t *req, int status);
+void get_msg(uv_idle_t *handle);
+void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *stream);
+void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream);
+void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream);
+void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream);
+void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream);
+void alloc_buf(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
+void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
+void my_write_helper(uv_stream_t *stream);
+void add_entity_helper(uv_stream_t *stream, int x, int y);
+void move_entity_helper(uv_stream_t *stream, int dx, int dy);
+void remove_entity_helper(uv_stream_t *stream);
+void print_entity_roi_helper();
+void on_connect(uv_connect_t *req, int status);
 
 void on_write(uv_write_t *req, int status)
 {
@@ -21,7 +38,7 @@ void on_write(uv_write_t *req, int status)
 	free(req);
 }
 
-void get_msg(uv_handle_t *handle)
+void get_msg(uv_idle_t *handle)
 {
 	char *data = new char[1024];
 	uv_stream_t **stream = nullptr;
@@ -153,7 +170,7 @@ void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 			continue;
 		}
 		ClientEntity *ent = roi_entities[tgt_id];
-		roi_entities.erase(ent);
+		roi_entities.erase(ent->id);
 		free(ent);
 	}
 	my_write_helper(stream);
@@ -201,7 +218,7 @@ void my_write_helper(uv_stream_t *stream)
 			add_entity_helper(stream, x, y);
 			break;
 		case 2:
-			std::cout<<"Please enter dx and dy:"<<std:endl;
+			std::cout<<"Please enter dx and dy:"<<std::endl;
 			int dx, dy;
 			std::cin>>dx>>dy;
 			move_entity_helper(stream, dx, dy);
@@ -228,7 +245,7 @@ void add_entity_helper(uv_stream_t *stream, int x, int y)
 	memcpy(&buf[2 + int_size], &x, int_size);
 	memcpy(&buf[2 + int_size * 2], &y, int_size);
 	int len = strlen(buf);
-	memcpy(buf[1], &len, int_size);
+	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
 	uv_write(wreq, stream, &wrbuf, 1, on_write);
@@ -245,7 +262,7 @@ void move_entity_helper(uv_stream_t *stream, int dx, int dy)
 	memcpy(&buf[1 + int_size + 1 + int_size], &dx, int_size);
 	memcpy(&buf[1 + int_size + 1 + int_size * 2], &dy, int_size);
 	int len = strlen(buf);
-	memcpy(buf[1], &len, int_size);
+	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
 	uv_write(wreq, stream, &wrbuf, 1, on_write);
@@ -260,7 +277,7 @@ void remove_entity_helper(uv_stream_t *stream)
 	buf[1 + int_size] = CMD_GONE;
 	memcpy(&buf[1 + int_size + 1], &(avatar->id), int_size);
 	int len = strlen(buf);
-	memcpy(buf[1], &len, int_size);
+	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
 	uv_write(wreq, stream, &wrbuf, 1, on_write);

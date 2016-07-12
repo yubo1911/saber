@@ -3,7 +3,7 @@
 
 #include <uv.h>
 #include <set>
-#incldue <olist.h>
+#include <olist.h>
 
 typedef struct Entity
 {

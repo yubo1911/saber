@@ -1,18 +1,24 @@
 CC=g++
-CPPFLAGS=-g -O2 -Wall -Wextra -Isrc -rdynamic -DNDEBUG $(OPTFLAGS)
-LDLIBS=-ldl $(OPTLIBS)
+CPPFLAGS=-g -O2 -Wall -Wextra -Isrc -rdynamic -std=c++11 -DNDEBUG $(OPTFLAGS)
+LDLIBS=-ldl -luv $(OPTLIBS)
 PREFIX?=/usr/local
 
-SOURCES=$(wildcard src/**/*.cpp src/*.cpp)
+SOURCES=$(wildcard src/olist.cpp src/proto.cpp)
 OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
 
 TEST_SRC=$(wildcard tests/*_tests.cpp)
 TESTS=$(patsubst %.cpp,%,$(TEST_SRC))
 
+SERVER_SRC=$(wildcard src/gserver.cpp)
+SERVER=$(patsubst %.cpp,%,$(SERVER_SRC))
+
+CLIENT_SRC=$(wildcard src/gclient.cpp)
+CLIENT=$(patsubst %.cpp,%,$(CLIENT_SRC))
+
 TARGET=build/libroi.a
 SO_TARGET=$(patsubst %.a,%.so,$(TARGET))
 
-all: $(TARGET) $(SO_TARGET) tests
+all: $(TARGET) $(SO_TARGET) server client tests
 
 dev: CFLAGS=-g -Wall -Isrc -Wall -Wextra $(OPTFLAGS)
 dev: all
@@ -34,11 +40,19 @@ tests: LDLIBS += $(TARGET)
 tests: $(TESTS)
 	sh ./tests/runtests.sh
 
+.PHONY: server
+server: LDLIBS += $(TARGET)
+server: $(SERVER)
+
+.PHONY: client
+client: LDLIBS += $(TARGET)
+client: $(CLIENT)
+
 valgrind:
 	VALGRIND="valgrind --log-file=/tmp/valgrind-%p.log" $(MAKE)
 
 clean:
-	rm -rf build $(OBJECTS) $(TESTS)
+	rm -rf build $(OBJECTS) $(TESTS) $(SERVER) $(CLIENT)
 	rm -f tests/tests.log
 	find . -name "*.gc*" -exec rm {} \;
 	rm -rf `find . -name "*.dSYM" -print`

@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <set>
 
-using std::set;
-
 struct OListNode;
 #define MAX_ROI_NUM 30
 
