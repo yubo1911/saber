@@ -103,7 +103,7 @@ void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	}
 	unsigned int num = *((unsigned int *)&data[1 + int_size]);
 	int offset = 1 + int_size * 2;
-	for(int i = 0; i < num; i++)
+	for(unsigned int i = 0; i < num; i++)
 	{
 		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
 		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
@@ -129,7 +129,7 @@ void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	}
 	unsigned int num = *((unsigned int *)&data[1 + int_size]);
 	int offset = 1 + int_size * 2;
-	for(int i = 0; i < num; i++)
+	for(unsigned int i = 0; i < num; i++)
 	{
 		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
 		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
@@ -159,7 +159,7 @@ void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	}
 	unsigned int num = *((unsigned int *)&data[1 + int_size]);
 	int offset = 1 + int_size * 2;
-	for(int i = 0; i < num; i++)
+	for(unsigned int i = 0; i < num; i++)
 	{
 		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
 		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
