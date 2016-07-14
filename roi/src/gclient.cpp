@@ -1,9 +1,13 @@
 #include <stdlib.h>
 #include <iostream>
+extern "C"
+{
 #include <uv.h>
+}
 #include <cstring>
-#include <entity.h>
-#include <proto.h>
+#include <cstdlib>
+#include "entity.h"
+#include "proto.h"
 #include <map>
 
 #define DEFAULT_PORT 7000
@@ -11,6 +15,8 @@
 uv_loop_t *loop = NULL;
 ClientEntity *avatar = NULL;
 std::map<unsigned int, ClientEntity*> roi_entities;
+int repeat_cb_called = 0;
+char msg_data[1024] = {0};
 
 void on_write(uv_write_t *req, int status);
 void get_msg(uv_idle_t *handle);
@@ -21,7 +27,7 @@ void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream);
 void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream);
 void alloc_buf(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
-void my_write_helper(uv_stream_t *stream);
+void repeat_cb(uv_timer_t *handle);
 void add_entity_helper(uv_stream_t *stream, int x, int y);
 void move_entity_helper(uv_stream_t *stream, int dx, int dy);
 void remove_entity_helper(uv_stream_t *stream);
@@ -40,13 +46,13 @@ void on_write(uv_write_t *req, int status)
 
 void get_msg(uv_idle_t *handle)
 {
-	char *data = new char[1024];
-	uv_stream_t **stream = nullptr;
+	memset(msg_data, 0, 1024);
+	uv_stream_t *stream = nullptr;
 	unsigned int len = 0;
-	get_one_cmd_from_cache_msg(data, len, stream);
+	get_one_cmd_from_cache_msg(msg_data, len, &stream);
 	if(len > 0 && stream != nullptr)
 	{
-		dispatch_cmd(data, len, *stream);
+		dispatch_cmd(msg_data, len, stream);
 	}
 }
 
@@ -73,6 +79,7 @@ void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *stream)
 
 void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
+	std::cout<<"Handle add entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	int x = *((unsigned int *)&data[1 + int_size]);
@@ -80,7 +87,6 @@ void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	if(avatar)
 	{
 		std::cerr<<"Avatar exist already."<<std::endl;
-		my_write_helper(stream);
 		return;
 	}
 
@@ -88,17 +94,26 @@ void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	avatar->id = id;
 	avatar->pos[COORD_X] = x;
 	avatar->pos[COORD_Y] = y;
-	my_write_helper(stream);
+	avatar->server = stream;
+	
+	uv_timer_t repeat;
+	uv_timer_init(uv_default_loop(), &repeat);
+	uv_timer_start(&repeat, repeat_cb, 100, 10);
 }
 
 void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
+	std::cout<<"Handle add roi entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	if(!avatar) 
 	{
 		std::cerr<<"No avatar yet."<<std::endl;
-		my_write_helper(stream);
+		return;
+	}
+	if(avatar->id != id)
+	{
+		std::cerr<<"Msg not for me."<<std::endl;
 		return;
 	}
 	unsigned int num = *((unsigned int *)&data[1 + int_size]);
@@ -114,17 +129,21 @@ void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 		ent->pos[COORD_Y] = y;
 		roi_entities[tgt_id] = ent;
 	}
-	my_write_helper(stream);
 }
 
 void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
+	std::cout<<"Handle mv roi entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	if(!avatar) 
 	{
 		std::cerr<<"No avatar yet."<<std::endl;
-		my_write_helper(stream);
+		return;
+	}
+	if(avatar->id != id)
+	{
+		std::cerr<<"Msg not for me."<<std::endl;
 		return;
 	}
 	unsigned int num = *((unsigned int *)&data[1 + int_size]);
@@ -144,17 +163,21 @@ void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 		ent->pos[COORD_X] = x;
 		ent->pos[COORD_Y] = y;
 	}
-	my_write_helper(stream);
 }
 
 void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
+	std::cout<<"Handle remove roi entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	if(!avatar) 
 	{
 		std::cerr<<"No avatar yet."<<std::endl;
-		my_write_helper(stream);
+		return;
+	}
+	if(avatar->id != id)
+	{
+		std::cerr<<"Msg not for me."<<std::endl;
 		return;
 	}
 	unsigned int num = *((unsigned int *)&data[1 + int_size]);
@@ -162,8 +185,6 @@ void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	for(unsigned int i = 0; i < num; i++)
 	{
 		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
-		int x =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size]); 
-		int y =  *((unsigned int *)&data[offset + i * (3 * int_size) + int_size * 2]); 
 		if(roi_entities.count(tgt_id) <= 0)
 		{
 			std::cerr<<"No entity yet: "<<tgt_id<<std::endl;
@@ -173,7 +194,6 @@ void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 		roi_entities.erase(ent->id);
 		free(ent);
 	}
-	my_write_helper(stream);
 }
 
 void alloc_buf(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
@@ -200,39 +220,26 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
 	if(buf->base) free(buf->base);
 }
 
-void my_write_helper(uv_stream_t *stream)
+void repeat_cb(uv_timer_t *handle)
 {
-	std::cout<<std::endl;
-	std::cout<<"1.Add a new entity."<<std::endl;
-	std::cout<<"2.Move entity."<<std::endl;
-	std::cout<<"3.Remove entity."<<std::endl;
-	std::cout<<"4.Print entity's roi."<<std::endl;
-	int choice = 0;
-	std::cin>>choice;
-	switch(choice)
+	if(!avatar)
 	{
-		case 1:
-			std::cout<<"Please enter x and y:"<<std::endl;
-			int x, y;
-			std::cin>>x>>y;
-			add_entity_helper(stream, x, y);
-			break;
-		case 2:
-			std::cout<<"Please enter dx and dy:"<<std::endl;
-			int dx, dy;
-			std::cin>>dx>>dy;
-			move_entity_helper(stream, dx, dy);
-			break;
-		case 3:
-			remove_entity_helper(stream);
-			break;
-		case 4:
-			print_entity_roi_helper();
-			break;
-		default:
-			std::cout<<"What do you mean?"<<std::endl;
-			my_write_helper(stream);
-			break;
+		std::cerr<<"No avatar yet."<<std::endl;
+		return;
+	}
+	print_entity_roi_helper();
+	int xpos[10] = {1, -1, 2, -2, 3, -3, 4, -4, 5, -5};
+	int ypos[10] = {1, -1, 2, -2, 3, -3, 4, -4, 5, -5};
+	int dx = xpos[rand() % 10];
+	int dy = ypos[rand() % 10];
+	repeat_cb_called++;
+	if(repeat_cb_called < 10)
+	{
+		move_entity_helper(avatar->server, dx, dy);
+	}
+	else
+	{
+		remove_entity_helper(avatar->server);
 	}
 }
 
@@ -244,7 +251,8 @@ void add_entity_helper(uv_stream_t *stream, int x, int y)
 	buf[1 + int_size] = CMD_NEW;
 	memcpy(&buf[2 + int_size], &x, int_size);
 	memcpy(&buf[2 + int_size * 2], &y, int_size);
-	int len = strlen(buf);
+	int len = 2 + int_size * 3;
+	std::cout<<"add entity msg len "<<len<<std::endl;
 	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
@@ -261,7 +269,7 @@ void move_entity_helper(uv_stream_t *stream, int dx, int dy)
 	memcpy(&buf[1 + int_size + 1], &(avatar->id), int_size);
 	memcpy(&buf[1 + int_size + 1 + int_size], &dx, int_size);
 	memcpy(&buf[1 + int_size + 1 + int_size * 2], &dy, int_size);
-	int len = strlen(buf);
+	int len = 2 + int_size * 4;
 	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
@@ -276,7 +284,7 @@ void remove_entity_helper(uv_stream_t *stream)
 	buf[0] = PROTO_START;
 	buf[1 + int_size] = CMD_GONE;
 	memcpy(&buf[1 + int_size + 1], &(avatar->id), int_size);
-	int len = strlen(buf);
+	int len = 2 + int_size * 2;
 	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
@@ -303,8 +311,9 @@ void on_connect(uv_connect_t *req, int status)
 	}
 	std::cout<<"Connected.\n";
 	uv_stream_t *stream = req->handle;
-	my_write_helper(stream);
 	uv_read_start(stream, alloc_buf, on_read);
+	
+	add_entity_helper(stream, 0, 0);
 }
 
 int main()

@@ -3,7 +3,7 @@
 
 #include <uv.h>
 #include <set>
-#include <olist.h>
+#include "olist.h"
 
 typedef struct Entity
 {
@@ -17,6 +17,7 @@ typedef struct ClientEntity
 {
 	unsigned int id;
 	double pos[COORD_NUM];
+	uv_stream_t *server;
 } ClientEntity;
 
 #endif

@@ -10,7 +10,7 @@ def func_cache(size=10):
 			key = (args, frozenset(kwargs.items()))
 			if key not in cache:
 				print('func {} is not cached with arguments {} {}'.format(
-					func.__name__, args, kwargs)) 
+					func.__name__, args, kwargs))
 				res = func(*args, **kwargs)
 				if len(cache) >= size:
 					lucky_key = random.choice(list(cache.keys()))

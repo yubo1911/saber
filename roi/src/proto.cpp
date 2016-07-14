@@ -2,13 +2,14 @@
 #include <deque>
 #include <map>
 #include <uv.h>
-#include <proto.h>
+#include "proto.h"
 
 std::map<uv_stream_t*, std::deque<char>* > cache_msg;
 void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client);
 
 void push_data_to_cache_msg(char *data, int nread, uv_stream_t *client)
 {
+	std::cout<<"push data to cache..."<<nread<<std::endl;
 	if(cache_msg.count(client) <= 0)
 	{
 		cache_msg[client] = new std::deque<char>();
@@ -16,6 +17,7 @@ void push_data_to_cache_msg(char *data, int nread, uv_stream_t *client)
 	
 	for(int i = 0; i < nread; i++)
 	{
+		std::cout<<i<<": "<<(unsigned int)data[i]<<std::endl;
 		cache_msg[client]->push_back(data[i]);
 	}
 }
@@ -56,13 +58,15 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client)
 		clen[i-1] = cache_msg[client]->at(i);
 	}
 	unsigned int ulen = *((unsigned int *)clen);
+	std::cout<<"find ulen"<<ulen<<std::endl;
 	if(cache_msg[client]->size() < ulen)
 	{
 		len = 0;
 		return;
 	}
 	len = ulen - 5;
-	for(int i = 0; i < len; i++)
+	std::cout<<"find len"<<len<<std::endl;
+	for(size_t i = 0; i < len; i++)
 	{
 		if(i < 5)
 		{
@@ -72,5 +76,6 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client)
 		data[i - 5] = cache_msg[client]->front();
 		cache_msg[client]->pop_front();
 	}
+	std::cout<<"okey!"<<std::endl;
 	return;
 }

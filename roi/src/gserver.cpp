@@ -6,10 +6,13 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+extern "C"
+{
 #include <uv.h>
-#include <olist.h>
-#include <proto.h>
-#include <entity.h>
+}
+#include "olist.h"
+#include "proto.h"
+#include "entity.h"
 
 #define DEFAULT_PORT 7000
 #define BACKLOG 128
@@ -20,7 +23,6 @@ static OList *list = NULL;
 static std::map<unsigned int, OListNode *> entity_map;
 static int max_entity_id = 0;
 
-
 void insert_new_entity(char *data, int nread, uv_stream_t *client);
 void move_entity(char *data, int nread, uv_stream_t *client);
 void remove_entity(char *data, int nread, uv_stream_t *client);
@@ -30,16 +32,18 @@ void get_msg(uv_idle_t *handle);
 void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *client);
 void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y);
 void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, std::set<unsigned int> &roi);
+char msg_data[1024] = {0};
 
 void get_msg(uv_idle_t *handle)
 {
-	char *data = new char[1024];
-	uv_stream_t **client = nullptr;
+	memset(msg_data, 0, 1024);
+	uv_stream_t *client = nullptr;
 	unsigned int len = 0;
-	get_one_cmd_from_cache_msg(data, len, client);
+	get_one_cmd_from_cache_msg(msg_data, len, &client);
 	if(len > 0 && client != nullptr)
 	{
-		dispatch_cmd(data, len, *client);
+		std::cout<<"dispatch cmd..."<<std::endl;
+		dispatch_cmd(msg_data, len, client);
 	}
 }
 
@@ -63,6 +67,7 @@ void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *client)
 
 void insert_new_entity(char *data, int nread, uv_stream_t *client)
 {
+	std::cout<<"insert new entity..."<<std::endl;
 	unsigned int entity_id = max_entity_id;
 	char buf[256];
 	sprintf(buf, "entity with id %d", entity_id);
@@ -88,6 +93,7 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 
 void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
 {
+	std::cout<<"ack new entity..."<<std::endl;
 	size_t int_size = sizeof(int);
 	char buf[256] = {0};
 	buf[0] = PROTO_START;
@@ -105,6 +111,7 @@ void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
 
 void move_entity(char *data, int nread, uv_stream_t *client)
 {
+	std::cout<<"move entity..."<<std::endl;
 	unsigned int entity_id = (unsigned int)data[1];
 	int dx = (*(int*)&data[2]);
 	int dy = (*(int*)&data[6]);
@@ -117,6 +124,7 @@ void move_entity(char *data, int nread, uv_stream_t *client)
 
 void remove_entity(char *data, int nread, uv_stream_t *client)
 {
+	std::cout<<"remove entity..."<<std::endl;
 	unsigned int entity_id = (unsigned int)data[1];
 	if(entity_map.count(entity_id) <= 0) return;
 	OListNode *node = entity_map[entity_id];
@@ -231,6 +239,7 @@ void echo_write(uv_write_t *req, int status)
 	{
 		std::cerr<<"Write error "<<uv_strerror(status)<<std::endl;
 	}
+	std::cout<<"Wrote."<<std::endl;
 	free(req);
 }
 
@@ -242,6 +251,7 @@ void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
 
 void read_cmd(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
+	std::cout<<"read cmd "<<nread<<std::endl;
 	if(nread < 0)
 	{
 		if(nread != EOF) std::cerr<<"Read error "<<uv_err_name(nread)<<std::endl;
@@ -295,6 +305,6 @@ int main()
 	{
 		std::cerr<<"Listen error "<<uv_strerror(r)<<std::endl;
 	}
-
+	std::cout<<"Running server..."<<std::endl;
 	return uv_run(loop, UV_RUN_DEFAULT);
 }
