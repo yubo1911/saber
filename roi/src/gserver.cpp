@@ -77,9 +77,11 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	ent->client = client;
 	ent->repr = strdup(buf);
 	ent->id = entity_id;
+	ent->roi_entities = new std::set<unsigned int>();
 
 	ack_new_entity(client, entity_id, x, y);
 	
+	std::cout<<"after ack new entity..."<<std::endl;
 	OListNode *node = (OListNode*)malloc(sizeof(OListNode));
 	node->pos[COORD_X] = x;
 	node->pos[COORD_Y] = y;
@@ -87,8 +89,10 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	node->next[COORD_X] = node->prev[COORD_X] = node->next[COORD_Y] = node->prev[COORD_Y] = NULL;
 	OList_insert(list, node);
 	entity_map[entity_id] = node;
+	std::cout<<"before update roi..."<<std::endl;
 	update_roi(client, entity_id);
 	max_entity_id++;
+	std::cout<<"after update roi..."<<std::endl;
 }
 
 void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
@@ -111,10 +115,10 @@ void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
 
 void move_entity(char *data, int nread, uv_stream_t *client)
 {
-	std::cout<<"move entity..."<<std::endl;
 	unsigned int entity_id = (unsigned int)data[1];
 	int dx = (*(int*)&data[2]);
 	int dy = (*(int*)&data[6]);
+	std::cout<<"move entity..."<<dx<<'\t'<<dy<<std::endl;
 	
 	if(entity_map.count(entity_id) <= 0) return;
 	OListNode *node = entity_map[entity_id];
@@ -147,27 +151,29 @@ void remove_entity(char *data, int nread, uv_stream_t *client)
 void update_roi(uv_stream_t *client, unsigned int entity_id)
 {
 	if(entity_map.count(entity_id) <= 0) return;
-	OListNode *node = entity_map[entity_id];
+	OListNode *avatar_node = entity_map[entity_id];
 	std::set<OListNode*> roi;
-	OList_roi(list, node, ROI_RANGE, ROI_RANGE, roi);
+	OList_roi(list, avatar_node, ROI_RANGE, ROI_RANGE, roi);
 	std::set<unsigned int> roi_ent;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
 		OListNode *node = *it;
-		roi_ent.insert(((Entity *)(node->value))->id);
+		unsigned int id = ((Entity *)(node->value))->id;
+		roi_ent.insert(id);
 	}
-
 	std::set<unsigned int> roi_add;
 	std::set<unsigned int> roi_rm;
 	std::set<unsigned int> roi_mv;
-
-	std::set_difference(roi_ent.begin(), roi_ent.end(), ((Entity *)node->value)->roi_entities.begin(), ((Entity *)node->value)->roi_entities.end(),
+	auto old_roi = ((Entity*)avatar_node->value)->roi_entities;
+	std::cout<<roi_ent.size()<<'\t'<<old_roi->size()<<'\t'<<roi_add.size()<<std::endl;
+	
+	std::set_difference(roi_ent.begin(), roi_ent.end(), old_roi->begin(), old_roi->end(),
 			std::inserter(roi_add, roi_add.begin()));
 	
-	std::set_difference(((Entity *)node->value)->roi_entities.begin(), ((Entity *)node->value)->roi_entities.end(), roi_ent.begin(), roi_ent.end(),  
+	std::set_difference(old_roi->begin(), old_roi->end(), roi_ent.begin(), roi_ent.end(),  
 			std::inserter(roi_rm, roi_rm.begin()));
 	
-	std::set_difference(((Entity *)node->value)->roi_entities.begin(), ((Entity *)node->value)->roi_entities.end(), roi_rm.begin(), roi_rm.end(),  
+	std::set_difference(old_roi->begin(), old_roi->end(), roi_rm.begin(), roi_rm.end(),  
 			std::inserter(roi_mv, roi_mv.begin()));
 
 	send_roi(CMD_SC_ROI_ADD, client, entity_id, roi_add);
@@ -195,7 +201,8 @@ void update_roi(uv_stream_t *client, unsigned int entity_id)
 		send_roi(CMD_SC_ROI_MV, other_client, *it, entity_id_set);
 	}
 	
-	((Entity *)node->value)->roi_entities = roi_ent;
+	old_roi->clear();
+	std::copy(roi_ent.begin(), roi_ent.end(), std::inserter(*old_roi, old_roi->begin()));
 }
 
 void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, std::set<unsigned int> &roi)

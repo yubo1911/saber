@@ -10,7 +10,7 @@ typedef struct Entity
 	uv_stream_t *client;
 	unsigned int id;
 	char *repr;
-	std::set<unsigned int> roi_entities;
+	std::set<unsigned int> *roi_entities;
 } Entity;
 
 typedef struct ClientEntity

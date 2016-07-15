@@ -95,10 +95,14 @@ void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	avatar->pos[COORD_X] = x;
 	avatar->pos[COORD_Y] = y;
 	avatar->server = stream;
+
+	std::cout<<"Add client entity "<<id<<'\t'<<x<<'\t'<<y<<std::endl;
 	
-	uv_timer_t repeat;
-	uv_timer_init(uv_default_loop(), &repeat);
-	uv_timer_start(&repeat, repeat_cb, 100, 10);
+	uv_timer_t *repeat = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+	uv_timer_init(uv_default_loop(), repeat);
+	uv_timer_start(repeat, repeat_cb, 1000, 1000);
+	
+	std::cout<<"Start repeat "<<std::endl;
 }
 
 void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
@@ -220,8 +224,14 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
 	if(buf->base) free(buf->base);
 }
 
+void repeat_close_cb(uv_handle_t *handle)
+{
+	std::cout<<"Repeat closed."<<std::endl;
+}
+
 void repeat_cb(uv_timer_t *handle)
 {
+	std::cout<<"repeat count.."<<repeat_cb_called<<std::endl;
 	if(!avatar)
 	{
 		std::cerr<<"No avatar yet."<<std::endl;
@@ -240,6 +250,7 @@ void repeat_cb(uv_timer_t *handle)
 	else
 	{
 		remove_entity_helper(avatar->server);
+		uv_close((uv_handle_t*)handle, repeat_close_cb);
 	}
 }
 
@@ -262,6 +273,7 @@ void add_entity_helper(uv_stream_t *stream, int x, int y)
 
 void move_entity_helper(uv_stream_t *stream, int dx, int dy)
 {
+	std::cout<<"Move entity "<<dx<<'\t'<<dy<<std::endl;
 	size_t int_size = sizeof(int);
 	char buf[64] = {0};
 	buf[0] = PROTO_START;

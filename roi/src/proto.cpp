@@ -17,7 +17,6 @@ void push_data_to_cache_msg(char *data, int nread, uv_stream_t *client)
 	
 	for(int i = 0; i < nread; i++)
 	{
-		std::cout<<i<<": "<<(unsigned int)data[i]<<std::endl;
 		cache_msg[client]->push_back(data[i]);
 	}
 }
@@ -58,15 +57,13 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client)
 		clen[i-1] = cache_msg[client]->at(i);
 	}
 	unsigned int ulen = *((unsigned int *)clen);
-	std::cout<<"find ulen"<<ulen<<std::endl;
 	if(cache_msg[client]->size() < ulen)
 	{
 		len = 0;
 		return;
 	}
 	len = ulen - 5;
-	std::cout<<"find len"<<len<<std::endl;
-	for(size_t i = 0; i < len; i++)
+	for(size_t i = 0; i < ulen; i++)
 	{
 		if(i < 5)
 		{
@@ -76,6 +73,6 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client)
 		data[i - 5] = cache_msg[client]->front();
 		cache_msg[client]->pop_front();
 	}
-	std::cout<<"okey!"<<std::endl;
+	std::cout<<"okey! remain size:"<<cache_msg[client]->size()<<std::endl;
 	return;
 }
