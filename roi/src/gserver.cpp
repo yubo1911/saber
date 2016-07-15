@@ -115,9 +115,10 @@ void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
 
 void move_entity(char *data, int nread, uv_stream_t *client)
 {
+	size_t int_size = sizeof(int);
 	unsigned int entity_id = (unsigned int)data[1];
-	int dx = (*(int*)&data[2]);
-	int dy = (*(int*)&data[6]);
+	int dx = (*(int*)&data[1 + int_size]);
+	int dy = (*(int*)&data[1 + int_size * 2]);
 	std::cout<<"move entity..."<<dx<<'\t'<<dy<<std::endl;
 	
 	if(entity_map.count(entity_id) <= 0) return;
@@ -227,7 +228,7 @@ void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, st
 		int y = node->pos[COORD_Y];
 		memcpy(&buf[offset + roi_cnt * 3 * int_size], &entid, int_size);
 		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size], &x, int_size);
-		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size], &y, int_size);
+		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size * 2], &y, int_size);
 		roi_cnt++;
 		if(offset + roi_cnt * 3 * int_size > 256 - 3 * int_size) break;
 	}
