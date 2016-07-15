@@ -8,6 +8,8 @@
 #include <map>
 #include <unordered_map>
 #include <tuple>
+#include <algorithm>
+#include <set>
 
 using namespace std;
 
@@ -31,6 +33,12 @@ class TestData
 		int age;
 		double salary;
 };
+
+typedef struct TestStruct
+{
+	int id;
+	set<unsigned int> *old_set;
+} TestStruct;
 
 int main()
 {
@@ -148,4 +156,15 @@ int main()
 	typedef decltype(c14) ctype;
 	size_t sz = tuple_size<ctype>::value;
 	cout<<get<0>(c14)<<'\t'<<get<1>(c14)<<'\t'<<get<2>(c14)[0]<<'\t'<<sz<<endl;
+
+	set<unsigned int> set2;
+	set<unsigned int> set3;
+	TestStruct *stru = (TestStruct *)malloc(sizeof(TestStruct));
+	stru->old_set = new set<unsigned int>();
+	stru->old_set->insert(0);
+	cout<<stru->old_set->size()<<set2.size()<<set3.size()<<endl;
+	set_difference(stru->old_set->begin(), stru->old_set->end(), set2.begin(), set2.end(), inserter(set3, set3.begin()));
+	cout<<stru->old_set->size()<<set2.size()<<set3.size()<<endl;
+	delete stru->old_set;
+	stru->old_set = nullptr;
 }
