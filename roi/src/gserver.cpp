@@ -146,7 +146,6 @@ void update_roi(uv_stream_t *client, unsigned int entity_id)
 	if(entity_map.count(entity_id) <= 0) return;
 	OListNode *avatar_node = entity_map[entity_id];
 	std::set<OListNode*> roi;
-	OList_tranvers(list);
 	OList_roi(list, avatar_node, ROI_RANGE, ROI_RANGE, roi);
 	auto tmp = roi.begin();
 	std::set<unsigned int> roi_ent;
@@ -253,7 +252,8 @@ void read_cmd(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	if(nread < 0)
 	{
-		if(nread != EOF) std::cerr<<"Read error "<<uv_err_name(nread)<<std::endl;
+		if(nread != UV_EOF) std::cerr<<"Read error "<<uv_err_name(nread)<<std::endl;
+		std::cout<<"Bye client"<<std::endl;
 		uv_close((uv_handle_t*)client, NULL);
 	}
 	else if(nread > 0)
