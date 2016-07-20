@@ -243,7 +243,7 @@ void repeat_cb(uv_timer_t *handle)
 	int dx = xpos[rand() % 10];
 	int dy = ypos[rand() % 10];
 	repeat_cb_called++;
-	if(repeat_cb_called < 10)
+	if(repeat_cb_called < 100)
 	{
 		move_entity_helper(avatar->server, dx, dy);
 	}

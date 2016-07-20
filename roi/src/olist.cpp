@@ -1,6 +1,7 @@
-#include <olist.h>
-#include <dbg.h>
+#include "olist.h"
+#include "dbg.h"
 #include <set>
+#include <iostream>
 
 using std::set;
 
@@ -173,16 +174,16 @@ void OList_roi(OList *list, OListNode *node, double rangex, double rangey, std::
 		
 		if(stopleft && stopright && stopup && stopdown) break;
 
-		if(!outleft && !OList_has_add_to_roi(roi, left)) roi.insert(left);
+		if(left && !outleft && !OList_has_add_to_roi(roi, left)) roi.insert(left);
 		if(roi.size() >= MAX_ROI_NUM) break;
 
-		if(!outright && !OList_has_add_to_roi(roi, right)) roi.insert(right);
+		if(right && !outright && !OList_has_add_to_roi(roi, right)) roi.insert(right);
 		if(roi.size() >= MAX_ROI_NUM) break;
 
-		if(!outup && !OList_has_add_to_roi(roi, up)) roi.insert(up);
+		if(up && !outup && !OList_has_add_to_roi(roi, up)) roi.insert(up);
 		if(roi.size() >= MAX_ROI_NUM) break;
 
-		if(!outdown && !OList_has_add_to_roi(roi, down)) roi.insert(down);
+		if(down && !outdown && !OList_has_add_to_roi(roi, down)) roi.insert(down);
 		if(roi.size() >= MAX_ROI_NUM) break;
 		
 		if(left) left = left->prev[COORD_X];
@@ -224,7 +225,7 @@ static inline void OList_traverse_helper(OList *list, int coord, int reverse)
 		{
 			if (cur)
 			{
-				log_info("%s", (const char *)cur->value);
+				log_info("%p", cur->value);
 			}
 		}
 	}
@@ -234,7 +235,7 @@ static inline void OList_traverse_helper(OList *list, int coord, int reverse)
 		{
 			if (cur)
 			{
-				log_info("%s", (const char *)cur->value);
+				log_info("%p", cur->value);
 			}
 		}
 	}

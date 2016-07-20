@@ -89,10 +89,10 @@ void insert_new_entity(char *data, int nread, uv_stream_t *client)
 	node->next[COORD_X] = node->prev[COORD_X] = node->next[COORD_Y] = node->prev[COORD_Y] = NULL;
 	OList_insert(list, node);
 	entity_map[entity_id] = node;
-	std::cout<<"before update roi..."<<std::endl;
+	std::cout<<"before update roi..."<<entity_id<<std::endl;
 	update_roi(client, entity_id);
 	max_entity_id++;
-	std::cout<<"after update roi..."<<std::endl;
+	std::cout<<"after update roi..."<<entity_id<<std::endl;
 }
 
 void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
@@ -155,10 +155,15 @@ void update_roi(uv_stream_t *client, unsigned int entity_id)
 	OListNode *avatar_node = entity_map[entity_id];
 	std::set<OListNode*> roi;
 	OList_roi(list, avatar_node, ROI_RANGE, ROI_RANGE, roi);
+	OList_tranvers(list);
+	auto tmp = roi.begin();
+	std::cout<<"after get roi "<<OList_has_add_to_roi(roi, avatar_node)<<std::endl;
 	std::set<unsigned int> roi_ent;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
+		std::cout<<"AHA"<<std::endl;
 		OListNode *node = *it;
+		fprintf(stderr, "%p\n", node->value);
 		unsigned int id = ((Entity *)(node->value))->id;
 		roi_ent.insert(id);
 	}
