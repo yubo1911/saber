@@ -119,11 +119,13 @@ void move_entity(char *data, int nread, uv_stream_t *client)
 	unsigned int entity_id = (unsigned int)data[1];
 	int dx = (*(int*)&data[1 + int_size]);
 	int dy = (*(int*)&data[1 + int_size * 2]);
-	std::cout<<"move entity..."<<dx<<'\t'<<dy<<std::endl;
+	std::cout<<"move entity..."<<entity_id<<'\t'<<dx<<'\t'<<dy<<std::endl;
 	
 	if(entity_map.count(entity_id) <= 0) return;
 	OListNode *node = entity_map[entity_id];
+	std::cout<<"before olist move..."<<std::endl;
 	OList_move(list, node, dx, dy);
+	std::cout<<"after olist move..."<<std::endl;
 	update_roi(client, entity_id);
 }
 
@@ -154,8 +156,9 @@ void update_roi(uv_stream_t *client, unsigned int entity_id)
 	if(entity_map.count(entity_id) <= 0) return;
 	OListNode *avatar_node = entity_map[entity_id];
 	std::set<OListNode*> roi;
-	OList_roi(list, avatar_node, ROI_RANGE, ROI_RANGE, roi);
 	OList_tranvers(list);
+	std::cout<<"before get roi "<<OList_has_add_to_roi(roi, avatar_node)<<std::endl;
+	OList_roi(list, avatar_node, ROI_RANGE, ROI_RANGE, roi);
 	auto tmp = roi.begin();
 	std::cout<<"after get roi "<<OList_has_add_to_roi(roi, avatar_node)<<std::endl;
 	std::set<unsigned int> roi_ent;

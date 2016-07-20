@@ -294,7 +294,7 @@ static inline void OList_move_helper(OList *list, OListNode *node, OListNode *pr
 			nextnode->prev[coord] = node;
 		}
 	}
-	else if(node->pos[coord] < list->first[coord]->pos[coord])
+	else if(node != list->first[coord] && node->pos[coord] < list->first[coord]->pos[coord])
 	{
 		OList_remove_without_free(list, node, coord==COORD_X, coord==COORD_Y);
 		OListNode *oldfirst = list->first[coord];
@@ -317,7 +317,7 @@ OListNode *OList_find_place(OList *list, OListNode *node, int coord, double delt
 		{
 			if(cur->pos[coord] > node->pos[coord])
 			{
-				return cur->prev[coord];
+				return cur->prev[coord] == node ? NULL : cur->prev[coord];
 			}
 		}
 		if(node == list->last[coord]) return node->prev[coord];
