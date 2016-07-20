@@ -40,7 +40,6 @@ void on_write(uv_write_t *req, int status)
 	{
 		std::cerr<<"Write error: "<<uv_strerror(status)<<std::endl;
 	}
-	std::cout<<"Wrote."<<std::endl;
 	free(req);
 }
 
@@ -79,7 +78,6 @@ void dispatch_cmd(char *data, ssize_t nread, uv_stream_t *stream)
 
 void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
-	std::cout<<"Handle add entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	int x = *((unsigned int *)&data[1 + int_size]);
@@ -96,18 +94,14 @@ void handle_add_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	avatar->pos[COORD_Y] = y;
 	avatar->server = stream;
 
-	std::cout<<"Add client entity "<<id<<'\t'<<x<<'\t'<<y<<std::endl;
-	
 	uv_timer_t *repeat = (uv_timer_t*)malloc(sizeof(uv_timer_t));
 	uv_timer_init(uv_default_loop(), repeat);
 	uv_timer_start(repeat, repeat_cb, 1000, 1000);
 	
-	std::cout<<"Start repeat "<<std::endl;
 }
 
 void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
-	std::cout<<"Handle add roi entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	if(!avatar) 
@@ -137,7 +131,6 @@ void handle_add_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 
 void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
-	std::cout<<"Handle mv roi entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	if(!avatar) 
@@ -171,7 +164,6 @@ void handle_mv_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 
 void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
-	std::cout<<"Handle remove roi entity."<<std::endl;
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
 	if(!avatar) 
@@ -231,7 +223,6 @@ void repeat_close_cb(uv_handle_t *handle)
 
 void repeat_cb(uv_timer_t *handle)
 {
-	std::cout<<"repeat count.."<<repeat_cb_called<<std::endl;
 	if(!avatar)
 	{
 		std::cerr<<"No avatar yet."<<std::endl;
@@ -263,7 +254,6 @@ void add_entity_helper(uv_stream_t *stream, int x, int y)
 	memcpy(&buf[2 + int_size], &x, int_size);
 	memcpy(&buf[2 + int_size * 2], &y, int_size);
 	int len = 2 + int_size * 3;
-	std::cout<<"add entity msg len "<<len<<std::endl;
 	memcpy(&buf[1], &len, int_size);
 	uv_buf_t wrbuf = uv_buf_init(buf, len);
 	uv_write_t *wreq = (uv_write_t*)malloc(sizeof(uv_write_t));
@@ -273,7 +263,6 @@ void add_entity_helper(uv_stream_t *stream, int x, int y)
 
 void move_entity_helper(uv_stream_t *stream, int dx, int dy)
 {
-	std::cout<<"Move entity "<<dx<<'\t'<<dy<<std::endl;
 	size_t int_size = sizeof(int);
 	char buf[64] = {0};
 	buf[0] = PROTO_START;

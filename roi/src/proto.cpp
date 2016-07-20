@@ -9,7 +9,6 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client);
 
 void push_data_to_cache_msg(char *data, int nread, uv_stream_t *client)
 {
-	std::cout<<"push data to cache..."<<nread<<std::endl;
 	if(cache_msg.count(client) <= 0)
 	{
 		cache_msg[client] = new std::deque<char>();
@@ -73,6 +72,5 @@ void get_cmd_from_cache_msg(char *data, unsigned int &len, uv_stream_t *client)
 		data[i - 5] = cache_msg[client]->front();
 		cache_msg[client]->pop_front();
 	}
-	std::cout<<"okey! remain size:"<<cache_msg[client]->size()<<std::endl;
 	return;
 }
