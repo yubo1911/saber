@@ -102,10 +102,10 @@ void ack_new_entity(uv_stream_t *client, unsigned int entity_id, int x, int y)
 	char buf[256] = {0};
 	buf[0] = PROTO_START;
 	buf[1 + int_size] = CMD_SC_NEW;
-	memcpy(&buf[1 + int_size * 2], &entity_id, int_size);
-	memcpy(&buf[1 + int_size * 3], &x, int_size);
-	memcpy(&buf[1 + int_size * 4], &y, int_size);
-	int len = 1 + int_size * 5;
+	memcpy(&buf[2 + int_size * 1], &entity_id, int_size);
+	memcpy(&buf[2 + int_size * 2], &x, int_size);
+	memcpy(&buf[2 + int_size * 3], &y, int_size);
+	int len = 2 + int_size * 4;
 	memcpy(&buf[1], &len, int_size);
 	
 	uv_write_t *req = (uv_write_t*) malloc(sizeof(uv_write_t));
