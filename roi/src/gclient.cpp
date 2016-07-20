@@ -166,7 +166,6 @@ void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 {
 	size_t int_size = sizeof(int);
 	unsigned int id = *((unsigned int *)&data[1]);
-	std::cout<<"msg for entity "<<id<<std::endl;
 	if(!avatar) 
 	{
 		std::cerr<<"No avatar yet."<<std::endl;
@@ -182,7 +181,6 @@ void handle_rm_roi_entity(char *data, ssize_t nread, uv_stream_t *stream)
 	for(unsigned int i = 0; i < num; i++)
 	{
 		unsigned int tgt_id = *((unsigned int *)&data[offset + i * (3 * int_size)]); 
-		std::cout<<"remove entity "<<tgt_id<<std::endl;
 		if(roi_entities.count(tgt_id) <= 0)
 		{
 			std::cerr<<"RM No entity yet: "<<tgt_id<<std::endl;

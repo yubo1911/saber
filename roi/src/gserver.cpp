@@ -217,27 +217,22 @@ void send_roi(unsigned char cmd, uv_stream_t* client, unsigned int entity_id, st
 	
 	size_t offset = 1 + int_size + 1 + int_size * 2;
 	int roi_cnt = 0;
-	if(cmd == CMD_SC_ROI_RM)
-	{
-		std::cout<<"rm roi size:"<<roi.size()<<std::endl;
-	}
+	bool need_send = false;
 	for(auto it = roi.begin(); it != roi.end(); it++)
 	{
 		if(entity_map.count(*it) <= 0) continue;
+		need_send = true;
 		OListNode *node = entity_map[*it];
 		unsigned int entid = ((Entity *)node->value)->id;
 		int x = node->pos[COORD_X];
 		int y = node->pos[COORD_Y];
-		if(cmd == CMD_SC_ROI_RM)
-		{
-			std::cout<<"send roi..."<<(short)cmd<<entid<<std::endl;
-		}
 		memcpy(&buf[offset + roi_cnt * 3 * int_size], &entid, int_size);
 		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size], &x, int_size);
 		memcpy(&buf[offset + roi_cnt * 3 * int_size + int_size * 2], &y, int_size);
 		roi_cnt++;
 		if(offset + roi_cnt * 3 * int_size > 256 - 3 * int_size) break;
 	}
+	if(!need_send) return;
 	int len = offset + roi_cnt * 3 * int_size;
 	memcpy(&buf[1], &len, int_size);
 
@@ -256,7 +251,6 @@ void handle_client_close(uv_stream_t *client)
 		if(((Entity*)node->value)->client == client)
 		{
 			entity_id = it->first;
-			std::cout<<"remove entity "<<entity_id<<std::endl;
 			break;
 		}
 	}
