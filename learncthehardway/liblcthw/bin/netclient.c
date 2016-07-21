@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 
 		if(FD_ISSET(socket, &readmask))
 		{
-			rc = read_some(sock_rb, socket, 0);
+			rc = read_some(sock_rb, socket, 1);
 			check_debug(rc != -1, "Failed to read from socket.");
 		}
 
