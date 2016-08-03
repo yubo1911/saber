@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
 	auto up5 = clone(1024);
 	cout<<"up5: "<<*up5<<endl;
 	process_unique_ptr(move(up5));
+	//cout<<"up5 after process: "<<*up5<<endl; // would cause segmentfault
 
 	cout<<"test unique_ptr deleter:"<<endl;
 	int *p9 = new int(1024);
