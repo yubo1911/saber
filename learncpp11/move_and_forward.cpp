@@ -1,5 +1,6 @@
 #include <utility>
 #include <iostream>
+#include <memory>
 
 class IntVec
 {
@@ -8,15 +9,15 @@ public:
 	IntVec(size_t capacity);
 	IntVec(IntVec &rhs);
 	IntVec(IntVec &&rhs) noexcept;
-	IntVec &operator=(IntVec &&rhs) noexcept;
+	IntVec &operator=(IntVec &&rhs) & noexcept;
 	~IntVec();
 
 	int push_back(int val);
 	void print_info();
 
-	int *pointer;
-	size_t size;
 	size_t capacity;
+	size_t size;
+	int *pointer;
 };
 
 IntVec::IntVec(IntVec &rhs)
@@ -43,7 +44,7 @@ IntVec::IntVec(IntVec &&rhs) noexcept
 		std::cout<<"IntVect move constructor.\n";
 }
 
-IntVec &IntVec::operator=(IntVec &&rhs) noexcept
+IntVec &IntVec::operator=(IntVec &&rhs) & noexcept
 {
 	if(this != &rhs)
 	{
@@ -90,7 +91,32 @@ void IntVec::print_info()
 		std::cout<<"pointer: nullptr"<<std::endl;
 }
 
-int main(int argc, char *argv[])
+template <typename T>
+void vague_func(T&& val)
+{
+	std::cout<<"val: "<<val<<std::endl;
+	T val2 = val;
+	val2++;
+	std::cout<<"val2: "<<val2<<'\t'<<"val: "<<val<<std::endl;
+}
+
+void f(int &&i)
+{
+	std::cout<<i<<"\t i is a right ref.\n";
+}
+
+void g(int &i)
+{
+	std::cout<<i<<"\t i is a left ref.\n";
+}
+
+template <typename F, typename T>
+void forward_func(F f, T&& val)
+{
+	f(std::forward<T>(val));
+}
+
+int main()
 {
 	std::cout<<"test move constructor:\n";
 	std::allocator<std::string> alloc;
@@ -163,4 +189,37 @@ int main(int argc, char *argv[])
 	iv4.print_info();
 	std::cout<<"-------iv2:\n";
 	iv2.print_info();
+
+	std::cout<<"test move iterator:\n";
+	auto new_strs2 = alloc.allocate(size);
+	std::uninitialized_copy(std::make_move_iterator(new_strs),
+			std::make_move_iterator(new_strs + size),
+			new_strs2);
+	std::cout<<"new_strs[0]: "<<new_strs[0]<<std::endl;
+	std::cout<<"new_strs2[0]: "<<new_strs2[0]<<std::endl;
+	for(size_t i = 0; i < size; i++)
+	{
+		alloc.destroy(new_strs + i);
+	}
+	alloc.deallocate(new_strs, size);
+	std::cout<<"test move iterator done.\n"<<std::endl;
+
+	std::cout<<"test ref folding:\n";
+	int val = 2;
+	int &lref = val;
+	int &&rref = 2;
+	std::cout<<"-------with val:\n";
+	vague_func(2);
+	std::cout<<"-------with lref:\n";
+	vague_func(lref);
+	std::cout<<"-------with rref:\n";
+	vague_func(rref);
+	vague_func(std::move(val));
+	std::cout<<"test ref done.\n"<<std::endl;
+
+	std::cout<<"test forward:\n";
+	forward_func(f, 5);
+	forward_func(g, rref);
+	forward_func(g, val);
+	std::cout<<"test forward done.\n"<<std::endl;
 }
