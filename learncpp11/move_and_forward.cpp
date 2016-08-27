@@ -189,6 +189,7 @@ int main()
 	iv4.print_info();
 	std::cout<<"-------iv2:\n";
 	iv2.print_info();
+	std::cout<<"test custom move copy constructor/move assign operator done.\n"<<std::endl;
 
 	std::cout<<"test move iterator:\n";
 	auto new_strs2 = alloc.allocate(size);
