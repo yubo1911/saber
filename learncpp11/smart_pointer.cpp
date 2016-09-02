@@ -25,7 +25,7 @@ void process_unique_ptr(unique_ptr<int> up)
 	cout<<"process unique ptr: "<<*up<<endl;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
 	cout<<"test shared_ptr base usage:"<<endl;
 	shared_ptr<string> p1 = make_shared<string>("");

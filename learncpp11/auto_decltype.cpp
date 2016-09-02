@@ -63,9 +63,9 @@ int main()
 
 	//double *pval20 = &val6;
 	//decltype(*pval20) val21; // wrong. decltype(*pval20) = double&, must be initialized.
-	decltype(rval6 + 0) val22;
+	decltype(rval6 + 0) val22 = 0;
 	//decltype((val6)) val23; //wrong. decltype((val6)) == double&, must be initialized.
-	decltype(val6) val24;
+	decltype(val6) val24 = val6;
 	cout<<"test decltype and reference:\n"<<val22<<'\t'<<val24<<endl;
 
 	// using auto to short type

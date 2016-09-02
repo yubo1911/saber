@@ -15,8 +15,8 @@ public:
 	virtual void print_msg() {cout<<member_i<<'\t'<<member_c<<endl;}
 	virtual void final_foo() final {}
 
-	int member_i;
-	char member_c;
+	int member_i = 0;
+	char member_c = '\0';
 };
 
 
@@ -47,7 +47,7 @@ class TestClass2
 {
 public:
 	TestClass2() = default;
-	TestClass2(const int i) {}
+	TestClass2(const int i) {cout<<"construct with i: "<<i<<endl;}
 };
 
 class MultiSubClass: public TestClass, public TestClass2
@@ -60,7 +60,7 @@ public:
 	MultiSubClass() = default;
 };
 
-int main(int argc, char *argv[])
+int main()
 {
 	cout<<"test sizeof class member:\n";
 	cout<<sizeof(TestClass::member_i)<<"\t"<<sizeof(TestClass::member_c)<<endl;
