@@ -66,9 +66,9 @@ int main()
 	std::cout<<"test regex iterator usage done.\n"<<std::endl;
 	
 	std::cout<<"test regex sub_match usage:\n";
+	std::string phone_pattern = "(\\()?(\\d{3,4})(\\))?([- ])?(\\d{7,8})";
 	try
 	{
-		std::string phone_pattern = "(\\()?(\\d{3,4})(\\))?([- ])?(\\d{7,8})";
 		std::regex phone_regex(phone_pattern);
 		std::smatch results;
 		std::vector<std::string> test_phones = {"010-82224567", "(010-83332345", "(020)62334567", "(021) 22346543", "0357-4223456", "0358-465788"};
@@ -96,4 +96,18 @@ int main()
 		std::cout<<e.what()<<'\t'<<e.code()<<std::endl;
 	}
 	std::cout<<"test regex sub_match usage done.\n"<<std::endl;;
+	
+	std::cout<<"test regex replace usage:\n";
+	try
+	{
+		std::string format = "$2-$5";
+		std::regex phone_regex(phone_pattern);
+		std::string ori_phone = "yubo: (020)85776452";
+		std::cout<<"formated phone: "<<std::regex_replace(ori_phone, phone_regex, format) <<std::endl;
+	}
+	catch (std::regex_error e)
+	{
+		std::cout<<e.what()<<'\t'<<e.code()<<std::endl;
+	}
+	std::cout<<"test regex replace usage done.\n"<<std::endl;;
 }
