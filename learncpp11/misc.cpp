@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <functional>
+#include <limits.h>
 
 int (*dummy_ret1(int i))[5]
 {
@@ -30,6 +31,21 @@ public:
 private:
 	int val;
 };
+
+inline namespace InlineSpace
+{
+	int inline_val1 = 1;
+}
+
+namespace InlineSpace
+{
+	int inline_val2 = 2;
+}
+
+namespace NormalSpace
+{
+	int normal_val3 = 3;
+}
 
 int main()
 {
@@ -113,5 +129,38 @@ int main()
 		std::cout<<"OtherType can be cvt to bool implicitly in if clause.\n";
 	}
 	std::cout<<"test explicit type cvt done.\n"<<std::endl;
+
+	std::cout<<"test inline namespace:\n";
+	std::cout<<"inline vals: "<<inline_val1<<'\t'<<inline_val2<<std::endl;
+	//std::cout<<"normal vals: "<<normal_val3<<std::endl;
+	std::cout<<"normal vals: "<<NormalSpace::normal_val3<<std::endl;
+	std::cout<<"test inline namespace done.\n"<<std::endl;
+
+	std::cout<<"test scoped enum:\n";
+	enum class number {one, two, three};
+	enum nation {CHN, USA, FRA};
+	enum nation n1 = CHN;
+	//enum nation n2 = nation::USA;
+	std::cout<<"unscoped enum: "<<n1<<'\t'<<'\n';
+	//number num1 = one;
+	number num2 = number::two;
+	std::cout<<"scoped enum: "<<(int)num2<<'\n';
+	std::cout<<"test scoped enum done.\n";
+
+	std::cout<<"test enum type declare:\n";
+	enum long_enum
+	{
+		firstl = LLONG_MAX - 1,
+		secondl = ULLONG_MAX,
+	};
+	enum longlong_enum : long long
+	{
+		firstll = LLONG_MAX - 1,
+		secondll = LLONG_MAX
+		//secondll = ULLONG_MAX
+	};
+	std::cout<<firstl<<'\n'<<secondl<<'\n';
+	std::cout<<firstll<<'\n'<<secondll<<'\n';
+	std::cout<<"test enum type declare done.\n";
 
 }
