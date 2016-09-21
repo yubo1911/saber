@@ -1,0 +1,47 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""Usage:
+    py-grep <searchpath> <pattern> [-i] [--ignorepath <igpaths>...]
+    py-grep (-h | --help)
+
+Options:
+    -h --help    Show this screen
+    -i           Ignore case
+"""
+import os
+import re
+from docopt import docopt
+
+
+def py_grep(search_path, pattern, ignore_paths=None):
+    ignore_paths = ignore_paths if ignore_paths else []
+    for parent, dirnames, filenames in os.walk(search_path):
+        if parent in ignore_paths:
+            continue
+        for fn in filenames:
+            fn = os.path.join(parent, fn)
+            with open(fn, 'r') as fobj:
+                for n, line in enumerate(fobj):
+                    if pattern.search(line):
+                        print fn, n+1, ':', line.strip()
+    return
+
+def main():
+    args = docopt(__doc__, version="py-grep")
+
+    if args['-i']:
+        pattern = re.compile(args['<pattern>'], re.IGNORECASE)
+    else:
+        pattern = re.compile(args['<pattern>'])
+    
+    kwargs = {
+        'search_path': args['<searchpath>'],
+        'pattern': pattern,
+        'ignore_paths': args['<igpaths>'],
+    }
+    py_grep(**kwargs)
+    return
+
+if __name__ == "__main__":
+    main()
