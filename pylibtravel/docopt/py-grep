@@ -6,8 +6,9 @@
     py-grep (-h | --help)
 
 Options:
-    -h --help    Show this screen
-    -i           Ignore case
+    -h --help        Show this screen
+    -i               Ignore case
+    --ignore_paths   Ignored directories
 """
 import os
 import re
