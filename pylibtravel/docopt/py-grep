@@ -16,8 +16,15 @@ from docopt import docopt
 
 def py_grep(search_path, pattern, ignore_paths=None):
     ignore_paths = ignore_paths if ignore_paths else []
+    ignore_paths = [os.path.abspath(p) for p in ignore_paths]
     for parent, dirnames, filenames in os.walk(search_path):
-        if parent in ignore_paths:
+        abs_parent = os.path.abspath(parent)
+        is_ignore = False
+        for ig_path in ignore_paths:
+            if abs_parent.startswith(ig_path):
+                is_ignore = True
+                break
+        if is_ignore:
             continue
         for fn in filenames:
             fn = os.path.join(parent, fn)
