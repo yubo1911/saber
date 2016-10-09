@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package echo_server;
+
+service EchoServer
+{
+    rpc Echo (EchoRequest) returns (EchoReply) {}
+}
+
+message EchoRequest
+{
+    string msg = 1;
+}
+
+message EchoReply
+{
+    string msg = 1;
+}
