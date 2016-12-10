@@ -1,0 +1,27 @@
+real    0m39.087s
+user    0m17.996s
+sys     0m8.516s
+
+
+real    0m41.527s
+user    0m18.028s
+sys     0m8.864s
+
+real    5m3.009s
+user    0m17.676s
+sys     0m8.464s
+
+
+remove sleep
+
+real    0m36.350s
+user    0m17.136s
+sys     0m8.172s
+
+real    0m44.212s
+user    0m17.824s
+sys     0m8.716s
+
+real    4m44.543s
+user    0m17.680s
+sys     0m8.492s
