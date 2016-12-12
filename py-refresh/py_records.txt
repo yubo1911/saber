@@ -1,0 +1,76 @@
+>>> import test_refresh as tr
+1.0
+>>> import test_refresh as tr
+>>> # edit  version=2.0
+>>> import test_refresh as tr
+>>> tr.version
+1.0
+>>> del sys.modules['test_refresh']
+>>> import test_refresh as tr
+2.0
+>>> tr.version
+2.0
+# edit version=3.0
+>>> del sys.modules['test_refresh']
+>>> tr = __import__('test_refresh')
+3.0
+>>> tr.version
+3.0
+#edit version = 4.0
+>>> reload(tr)          
+4.0
+<module 'test_refresh' from 'test_refresh.py'>
+>>> tr.version
+4.0
+
+>>> a = tr.RefreshClass()
+>>> a.value
+1
+>>> a.print_info()
+RefreshClass value: 1 ver1.0
+
+# edit print_info ver2.0
+>>> reload(tr)
+4.0
+<module 'test_refresh' from 'test_refresh.py'>
+>>> a.value
+1
+>>> a.print_info()
+RefreshClass value: 1 ver1.0
+
+>>> b = tr.RefreshClass()
+>>> b.value
+2
+>>> b.print_info()
+RefreshClass value: 2 ver2.0
+
+>>> a.print_info
+<bound method RefreshClass.print_info of <test_refresh.RefreshClass object at 0x7f50beeb1f90>>
+>>> b.print_info
+<bound method RefreshClass.print_info of <test_refresh.RefreshClass object at 0x7f50beebe1d0>>
+>>> tr.RefreshClass.print_info
+<unbound method RefreshClass.print_info>
+
+>>> a.__class__ = tr.RefreshClass
+>>> a.value
+1
+>>> a.print_info()
+RefreshClass value: 1 ver2.0
+
+>>> reload(tr)
+4.0
+<module 'test_refresh' from 'test_refresh.py'>
+>>> a.print_info.im_func
+<function print_info at 0x7f50beeb2c08>
+>>> c = tr.RefreshClass()
+>>> c.print_info()
+RefreshClass value: 3 ver3.0
+>>> c.print_info.im_func
+<function print_info at 0x7f50beeb2cf8>
+>>> a.__class__ = tr.RefreshClass
+>>> a.print_info.im_func
+<function print_info at 0x7f50beeb2cf8>
+>>> a.print_info()
+RefreshClass value: 1 ver3.0
+>>> 
+
