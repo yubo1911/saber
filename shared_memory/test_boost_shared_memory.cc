@@ -8,11 +8,7 @@ int main(void)
 {
 	using namespace boost::interprocess;
 
-	struct shm_remove
-	{
-		shm_remove() { shared_memory_object::remove("MyMemory");}
-		~shm_remove(){ shared_memory_object::remove("MyMemory");}
-	} remover;
+	shared_memory_object::remove("MyMemory");
 	
 	managed_shared_memory segment(create_only, "MyMemory", 65535);
 	std::string name;
@@ -40,6 +36,6 @@ int main(void)
 			std::string *name = segment.find<std::string>(cname).first;
 			printf("child found in shared memory %s\n", name->c_str());
 		}
+		shared_memory_object::remove("MyMemory");
 	}
-	sleep(1);
 }
